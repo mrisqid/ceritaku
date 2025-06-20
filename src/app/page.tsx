@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const AVATARS = ["😃", "🦊", "🐼", "🐸", "🦄", "🐧", "🐯", "🐵", "🐱", "🐶"];
+
+function generateRoomCode(length = 6) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < length; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
 
 export default function Home() {
   const [roomCode, setRoomCode] = useState("");
@@ -13,6 +22,16 @@ export default function Home() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomCode, setNewRoomCode] = useState("");
+  const [maxPlayers, setMaxPlayers] = useState(3);
+  const [maxScore, setMaxScore] = useState(15);
+  const [shareMsg, setShareMsg] = useState("");
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [showJoinError, setShowJoinError] = useState(false);
+  const [createRoomLoading, setCreateRoomLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Prefill from localStorage
@@ -43,15 +62,48 @@ export default function Home() {
   };
 
   const handleCreateRoom = () => {
-    // TODO: Implement create room functionality
-    console.log("Creating room...");
+    // Open modal and generate code
+    setNewRoomName(playerName ? `Ruangan ${playerName}` : "Ruangan Baru");
+    setMaxPlayers(3);
+    setMaxScore(15);
+    setNewRoomCode(generateRoomCode());
+    setShowCreateRoomModal(true);
+    setShareMsg("");
   };
 
-  const handleJoinRoom = () => {
-    if (roomCode.trim()) {
-      // TODO: Implement join room functionality
-      console.log("Joining room:", roomCode);
+  const handleCreateRoomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateRoomLoading(true);
+    await new Promise((r) => setTimeout(r, 900)); // simulate loading
+    setShowCreateRoomModal(false);
+    setCreateRoomLoading(false);
+    router.push(`/room/${newRoomCode}`);
+  };
+
+  const handleShareCode = async () => {
+    const url = `${window.location.origin}/room/${newRoomCode}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareMsg("Link ruangan disalin!");
+      setTimeout(() => setShareMsg(""), 1500);
+    } catch {
+      setShareMsg("Gagal menyalin link");
+      setTimeout(() => setShareMsg(""), 1500);
     }
+  };
+
+  const handleJoinRoom = async () => {
+    if (!roomCode.trim()) return;
+    setJoinLoading(true);
+    // Simulate validation: code must be 6 chars, uppercase letters/numbers only
+    const valid = /^[A-Z0-9]{6}$/.test(roomCode.trim());
+    await new Promise((r) => setTimeout(r, 800)); // simulate loading
+    if (!valid) {
+      setJoinLoading(false);
+      setShowJoinError(true);
+      return;
+    }
+    router.push(`/room/${roomCode.trim()}`);
   };
 
   return (
@@ -64,15 +116,9 @@ export default function Home() {
       {/* Header with logo and info button */}
       <header className="relative z-10 flex items-center justify-between px-6 py-6 max-w-5xl mx-auto w-full">
         <div className="flex items-center gap-2">
-          <Image
-            src="/globe.svg"
-            alt="Logo"
-            width={48}
-            height={48}
-            className="drop-shadow-lg"
-          />
+          <span className="text-4xl md:text-5xl drop-shadow-lg">🕵️</span>
           <span className="text-2xl font-extrabold text-blue-700 tracking-tight">
-            Ceritaku
+            CeritaKu
           </span>
         </div>
         <button
@@ -88,7 +134,7 @@ export default function Home() {
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[70vh] px-4">
         <div className="bg-white/90 rounded-3xl shadow-2xl p-8 md:p-12 flex flex-col items-center w-full max-w-lg border-4 border-yellow-300">
           <h1 className="text-4xl md:text-5xl font-extrabold text-blue-700 mb-2 text-center drop-shadow">
-            Tebak Cerita
+            CeritaKu
           </h1>
           <p className="text-lg md:text-xl text-blue-800 mb-6 text-center font-medium">
             Game Tebak Kisah Multiplayer Seru!
@@ -193,13 +239,162 @@ export default function Home() {
               />
               <button
                 onClick={handleJoinRoom}
-                disabled={!roomCode.trim()}
-                className="w-full bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-blue-200 hover:scale-105"
+                disabled={!roomCode.trim() || joinLoading}
+                className={`w-full bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-blue-200 hover:scale-105 ${
+                  joinLoading ? "opacity-70" : ""
+                }`}
               >
-                🚀 Gabung
+                {joinLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      ></path>
+                    </svg>
+                    Loading...
+                  </span>
+                ) : (
+                  <>🚀 Gabung</>
+                )}
               </button>
             </div>
           </div>
+
+          {/* Create Room Modal */}
+          {showCreateRoomModal && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowCreateRoomModal(false)}
+              ></div>
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <form
+                  onSubmit={handleCreateRoomSubmit}
+                  className="bg-white rounded-2xl shadow-2xl p-6 border-2 border-yellow-300 max-w-md w-full relative animate-fadeIn flex flex-col gap-4"
+                >
+                  <button
+                    aria-label="Tutup"
+                    type="button"
+                    onClick={() => setShowCreateRoomModal(false)}
+                    className="absolute top-3 right-3 text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-full p-2 border border-blue-200 shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    <span className="text-lg">✕</span>
+                  </button>
+                  <h3 className="text-xl font-bold text-blue-700 mb-2 text-center">
+                    Buat Ruangan
+                  </h3>
+                  <label className="text-blue-700 font-semibold text-sm">
+                    Nama Ruangan
+                  </label>
+                  <input
+                    type="text"
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 placeholder-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
+                    maxLength={30}
+                    required
+                  />
+                  <label className="text-blue-700 font-semibold text-sm">
+                    Jumlah Maksimal Pemain
+                  </label>
+                  <select
+                    value={maxPlayers}
+                    onChange={(e) => setMaxPlayers(Number(e.target.value))}
+                    className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
+                  >
+                    <option value={3}>3 Orang</option>
+                    <option value={4}>4 Orang</option>
+                    <option value={5}>5 Orang</option>
+                  </select>
+                  <label className="text-blue-700 font-semibold text-sm">
+                    Score Maksimal Leaderboard
+                  </label>
+                  <select
+                    value={maxScore}
+                    onChange={(e) => setMaxScore(Number(e.target.value))}
+                    className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                    <option value={25}>25</option>
+                    <option value={30}>30</option>
+                  </select>
+                  <label className="text-blue-700 font-semibold text-sm">
+                    Kode Ruangan
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newRoomCode}
+                      readOnly
+                      className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 text-center font-mono text-lg w-40 select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleShareCode}
+                      className="bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 px-3 rounded-lg shadow-md border-2 border-blue-200 text-sm"
+                    >
+                      Share
+                    </button>
+                  </div>
+                  {shareMsg && (
+                    <span className="text-green-600 text-xs">{shareMsg}</span>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={createRoomLoading}
+                    className={`bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-bold py-2 px-6 rounded-lg shadow-md border-2 border-yellow-300 mt-2 w-full transition-all ${
+                      createRoomLoading ? "opacity-70" : ""
+                    }`}
+                  >
+                    {createRoomLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg
+                          className="animate-spin h-5 w-5 text-blue-900"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          ></path>
+                        </svg>
+                        Loading...
+                      </span>
+                    ) : (
+                      <>Buat & Masuk Ruangan</>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
 
           <div className="flex flex-wrap gap-3 justify-center mb-4">
             <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
@@ -224,7 +419,7 @@ export default function Home() {
               <button
                 aria-label="Tutup"
                 onClick={() => setShowHowToPlay(false)}
-                className="absolute top-3 right-3 text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-full p-2 border border-blue-200 shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="absolute top-3 right-3 text-blue-700 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 rounded-full p-2 border border-blue-200 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
               >
                 <span className="text-lg">✕</span>
               </button>
@@ -268,9 +463,35 @@ export default function Home() {
           </div>
         )}
 
+        {/* Join Room Error Modal */}
+        {showJoinError && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowJoinError(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-2xl shadow-2xl p-6 border-2 border-red-300 max-w-xs w-full relative animate-fadeIn flex flex-col items-center">
+                <h3 className="text-lg font-bold text-red-700 mb-4 text-center">
+                  Kode Ruangan Tidak Valid
+                </h3>
+                <p className="text-red-700 text-center mb-2">
+                  Kode ruangan harus 6 karakter, huruf kapital/angka.
+                </p>
+                <button
+                  onClick={() => setShowJoinError(false)}
+                  className="bg-red-400 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg shadow-md border-2 border-red-200 mt-2"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Footer */}
         <footer className="mt-10 text-center text-blue-700/70 text-sm">
-          © 2025 Ceritaku - Game Tebak Cerita Multiplayer
+          © 2025 CeritaKu - Game Tebak Cerita Multiplayer
         </footer>
       </main>
     </div>
