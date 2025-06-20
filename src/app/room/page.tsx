@@ -204,8 +204,8 @@ function StoryInput({ onSubmit }: StoryInputProps) {
   );
 }
 
-// Answer Component
-function Answer() {
+// Answer Component - Updated
+function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [currentStory] = useState('Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam');
 
@@ -225,6 +225,9 @@ function Answer() {
       console.log('Selected player:', selectedPlayer);
       const selectedPlayerName = players.find(p => p.id === selectedPlayer)?.name;
       console.log('Tebakan:', selectedPlayerName);
+      
+      // Move to next step after successful submission
+      onSubmitAnswer();
       setSelectedPlayer('');
     }
   };
@@ -296,7 +299,7 @@ function Answer() {
         </div>
 
         {/* Extra space for content below sticky button */}
-        <div className="h-0"></div>
+        <div className="h-20"></div>
       </div>
 
       {/* Sticky Submit Button */}
@@ -320,93 +323,190 @@ function Answer() {
   );
 }
 
-// Review Component
+// Enhanced Review Component
 function Review() {
+  const [showConfetti, setShowConfetti] = useState(true);
+  
   // Mock data - hasil tebakan pemain
   const guessResults = [
-    { id: '1', player: 'User261', guess: 'User1926', correct: false, story: 'Saya pernah tidur di kelas...' },
-    { id: '2', player: 'User1926', guess: 'User6993', correct: false, story: 'Saya pernah tidur di kelas...' },
-    { id: '3', player: 'User6993', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas...' },
-    { id: '4', player: 'User8281', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas...' },
+    { id: '1', player: 'User261', guess: 'User1926', correct: false, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 0 },
+    { id: '2', player: 'User1926', guess: 'User6993', correct: false, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 0 },
+    { id: '3', player: 'User6993', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 10 },
+    { id: '4', player: 'User8281', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 10 },
   ];
 
+  const correctGuesses = guessResults.filter(r => r.correct).length;
+  const totalGuesses = guessResults.length;
+  const accuracyPercentage = Math.round((correctGuesses / totalGuesses) * 100);
+
   return (
-    <div className="bg-gradient-to-br from-green-50 to-blue-100 rounded-xl shadow-lg h-full overflow-hidden">
+    <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 rounded-xl shadow-lg h-full overflow-hidden flex flex-col relative">
+      {/* Confetti Animation */}
+      {showConfetti && (
+        <div className="absolute inset-0 pointer-events-none z-20">
+          <div className="animate-pulse">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-2 h-2 bg-yellow-400 rounded-full animate-bounce"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 2}s`,
+                  animationDuration: `${1 + Math.random()}s`
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-4 px-6">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          📊 Review Hasil Tebakan
-        </h2>
-        <p className="text-green-100 text-sm mt-1">Lihat siapa yang berhasil menebak dengan benar</p>
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white py-6 px-6 flex-shrink-0 relative overflow-hidden">
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+        <div className="relative z-10">
+          <h2 className="text-2xl font-bold flex items-center gap-3 mb-2">
+            🎉 Review Hasil Tebakan
+          </h2>
+          <p className="text-emerald-100 text-sm">Selamat! Lihat siapa yang berhasil menebak dengan benar</p>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="p-6 h-full overflow-y-auto">
-        {/* Summary */}
-        <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-green-500 shadow-sm">
-          <h3 className="text-lg font-bold text-gray-800 mb-2">📈 Ringkasan</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {guessResults.filter(r => r.correct).length}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Accuracy Score */}
+        <div className="mb-6 p-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white text-center shadow-lg">
+          <div className="text-5xl font-bold mb-2">{accuracyPercentage}%</div>
+          <div className="text-emerald-100 text-lg">Tingkat Akurasi</div>
+          <div className="text-emerald-200 text-sm mt-1">
+            {correctGuesses} dari {totalGuesses} tebakan benar
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-emerald-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-emerald-600">{correctGuesses}</div>
+                <div className="text-sm text-gray-600">Tebakan Benar</div>
               </div>
-              <div className="text-sm text-gray-600">Tebakan Benar</div>
+              <div className="text-3xl">✅</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">
-                {guessResults.filter(r => !r.correct).length}
+          </div>
+          
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-red-600">{totalGuesses - correctGuesses}</div>
+                <div className="text-sm text-gray-600">Tebakan Salah</div>
               </div>
-              <div className="text-sm text-gray-600">Tebakan Salah</div>
+              <div className="text-3xl">❌</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-yellow-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-yellow-600">{guessResults.reduce((sum, r) => sum + r.points, 0)}</div>
+                <div className="text-sm text-gray-600">Total Poin</div>
+              </div>
+              <div className="text-3xl">🏆</div>
             </div>
           </div>
         </div>
 
-        {/* Results List */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">🎯 Detail Tebakan</h3>
-          {guessResults.map((result) => (
+        {/* Results List with Enhanced Design */}
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            🎯 Detail Tebakan Pemain
+          </h3>
+          
+          {guessResults.map((result, index) => (
             <div
               key={result.id}
-              className={`flex items-center gap-4 p-4 rounded-lg border-2 ${
+              className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg ${
                 result.correct
-                  ? 'border-green-200 bg-green-50'
-                  : 'border-red-200 bg-red-50'
+                  ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50'
+                  : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
               }`}
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
-              {/* Status Icon */}
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                result.correct ? 'bg-green-500' : 'bg-red-500'
+              {/* Result Badge */}
+              <div className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${
+                result.correct ? 'bg-emerald-500' : 'bg-red-500'
               }`}>
-                <span className="text-white text-lg">
-                  {result.correct ? '✅' : '❌'}
+                <span className="text-white text-sm font-bold">
+                  {result.correct ? '✓' : '✗'}
                 </span>
               </div>
 
-              {/* Player Info */}
-              <div className="flex-grow">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`font-bold ${
-                    result.correct ? 'text-green-700' : 'text-red-700'
+              <div className="p-5">
+                <div className="flex items-center gap-4 mb-3">
+                  {/* Player Avatar */}
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${
+                    result.correct ? 'bg-emerald-500' : 'bg-red-500'
                   }`}>
-                    {result.player}
-                  </span>
-                  <span className="text-gray-500">menebak:</span>
-                  <span className="font-medium text-gray-700">{result.guess}</span>
-                </div>
-                <p className="text-sm text-gray-600 italic">"{result.story}"</p>
-              </div>
+                    <span className="text-white">👤</span>
+                  </div>
 
-              {/* Points */}
-              <div className="text-right">
-                <div className={`text-lg font-bold ${
-                  result.correct ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {result.correct ? '+10' : '+0'}
+                  {/* Player Info */}
+                  <div className="flex-grow">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`font-bold text-lg ${
+                        result.correct ? 'text-emerald-700' : 'text-red-700'
+                      }`}>
+                        {result.player}
+                      </span>
+                      <span className="text-gray-500">menebak:</span>
+                      <span className="font-semibold text-gray-700 bg-white px-2 py-1 rounded-lg">
+                        {result.guess}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 italic bg-white/50 p-2 rounded">
+                      "{result.story}"
+                    </p>
+                  </div>
+
+                  {/* Points Display */}
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${
+                      result.correct ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                      +{result.points}
+                    </div>
+                    <div className="text-xs text-gray-500">poin</div>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500">points</div>
+
+                {/* Progress bar for visual appeal */}
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-1000 ${
+                      result.correct ? 'bg-emerald-500' : 'bg-red-500'
+                    }`}
+                    style={{ 
+                      width: result.correct ? '100%' : '30%',
+                      animationDelay: `${index * 0.2}s`
+                    }}
+                  ></div>
+                </div>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={() => setShowConfetti(!showConfetti)}
+            className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+          >
+            🎊 Toggle Celebration
+          </button>
+          <button className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+            🔄 Main Lagi
+          </button>
         </div>
       </div>
     </div>
@@ -457,7 +557,7 @@ export default function RoomPage() {
       case 2:
         return (
           <div className="h-full">
-            <Answer />
+            <Answer onSubmitAnswer={() => setCurrentStep(3)} />
           </div>
         );
       case 3:
