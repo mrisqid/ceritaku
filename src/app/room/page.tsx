@@ -1,34 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { type Player } from "@/types/room";
+import { useState, useEffect, useCallback } from "react";
+import { GuessPlayer, PlayerListProps, StepperProps, StoryInputProps, type Player } from "@/types/room";
 import { useRouter } from "next/navigation";
 
-// ============ INTERFACES ============
-interface StoryInputProps {
-  onSubmit: (story: string) => void;
-}
-
-interface PlayerListProps {
-  players: Player[];
-}
-
-interface Answer {
-  id: string;
-  username: string;
-  answer: string;
-  isCorrect?: boolean;
-}
-
-interface GuessPlayer {
-  id: string;
-  name: string;
-}
-
-interface StepperProps {
-  currentStep: number;
-  onStepChange: (step: number) => void;
-}
+// Import helper function
+import { getCurrentTime12Hour } from "@/helper/timeUtils";
 
 // ============ COMPONENTS ============
 
@@ -367,7 +344,7 @@ function GenreSelection() {
   const [selectedGenre, setSelectedGenre] = useState<string>('');
 
   const genres = [
-    { id: 'funny', name: 'Lucu', icon: '😂', color: 'from-yellow-400 to-orange-400',},
+    { id: 'funny', name: 'Lucu', icon: '😂', color: 'from-yellow-400 to-orange-400', },
     { id: 'embarrassing', name: 'Memalukan', icon: '😅', color: 'from-red-400 to-pink-400', },
     { id: 'scary', name: 'Menyeramkan', icon: '👻', color: 'from-purple-400 to-indigo-400', },
     { id: 'romantic', name: 'Romantis', icon: '💕', color: 'from-pink-400 to-rose-400', },
@@ -401,8 +378,8 @@ function GenreSelection() {
             key={genre.id}
             onClick={() => setSelectedGenre(selectedGenre === genre.id ? '' : genre.id)}
             className={`flex flex-col justify-center items-center group relative overflow-hidden rounded-lg p-3 sm:p-4 transition-all duration-300 transform hover:scale-105 ${selectedGenre === genre.id
-                ? 'ring-2 ring-white shadow-lg scale-105'
-                : 'hover:shadow-md'
+              ? 'ring-2 ring-white shadow-lg scale-105'
+              : 'hover:shadow-md'
               }`}
           >
             {/* Gradient Background */}
@@ -569,7 +546,7 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Result Badge */}
-        
+
 
               <div className="p-5">
                 <div className="flex items-center gap-4 mb-3">
@@ -598,17 +575,17 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
 
                   {/* Points Display */}
                   <div className="text-center">
-                  <div className={` w-8 h-8 rounded-full flex items-center justify-center ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
-                }`}>
-                <span className="text-white text-sm font-bold">
-                  {result.correct ? '✓' : '✗'}
-                </span>
-              </div>
+                    <div className={` w-8 h-8 rounded-full flex items-center justify-center ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
+                      }`}>
+                      <span className="text-white text-sm font-bold">
+                        {result.correct ? '✓' : '✗'}
+                      </span>
+                    </div>
                     <div className={`text-2xl font-bold ${result.correct ? 'text-emerald-600' : 'text-red-600'
                       }`}>
                       +{result.points}
                     </div>
-                    
+
                     <div className="text-xs text-gray-500">poin</div>
                   </div>
                 </div>
@@ -663,9 +640,33 @@ const mockPlayers: Player[] = [
   { id: "9", name: "Player 9", points: 0 },
 ];
 
+// Toast notification untuk perubahan status
+const statusMessages = {
+  'player_joined': '👋 Pemain baru bergabung!',
+  'player_left': '👋 Pemain keluar dari room',
+  'phase_changed': '📝 Fase baru dimulai!',
+  'time_warning': '⚠️ Waktu hampir habis!',
+  'all_submitted': '✅ Semua pemain sudah submit!'
+}
+
 export default function RoomPage() {
   const [players, setPlayers] = useState(mockPlayers);
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [roomStatus, setRoomStatus] = useState<'open' | 'in_progress' | 'full' | 'closed'>('open');
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  // Memoize updateTime function dengan useCallback
+  const updateTime = useCallback(() => {
+    setCurrentTime(getCurrentTime12Hour());
+  }, []); // Empty dependency array karena tidak bergantung pada state/props lain
+
+  // Real-time clock effect
+  useEffect(() => {
+    updateTime(); // Set initial time
+    const interval = setInterval(updateTime, 1000); // Update every second
+
+    return () => clearInterval(interval); // Cleanup
+  }, [updateTime]); // Sekarang dependency array berisi updateTime yang sudah di-memoize
 
   const handleSubmitStory = (story: string) => {
     console.log("Submitted story:", story);
@@ -723,8 +724,25 @@ export default function RoomPage() {
                 Tebak Cerita
               </h1>
             </div>
-            <div className="text-white/80 text-sm lg:text-base">
-              Room: #ABC123
+            <div className="flex items-center gap-4">
+              <div className="text-white/80 text-sm">
+                Room: #ABC123
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                roomStatus === 'open' ? 'bg-green-500/20 text-green-300' :
+                roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
+                roomStatus === 'full' ? 'bg-red-500/20 text-red-300' :
+                'bg-gray-500/20 text-gray-300'
+              }`}>
+                {roomStatus === 'open' && '🟢 Terbuka'}
+                {roomStatus === 'in_progress' && '🟡 Sedang Bermain'}
+                {roomStatus === 'full' && '🔴 Penuh'}
+                {roomStatus === 'closed' && '⚫ Ditutup'}
+              </span>
+            </div>
+            <div className="text-white/80 text-sm flex items-center gap-1">
+              <span>🕐</span>
+              <span className="font-mono">{currentTime}</span>
             </div>
           </div>
         </header>
