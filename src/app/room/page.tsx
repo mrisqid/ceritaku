@@ -24,7 +24,79 @@ interface GuessPlayer {
   name: string;
 }
 
+interface StepperProps {
+  currentStep: number;
+  onStepChange: (step: number) => void;
+}
+
 // ============ COMPONENTS ============
+
+// Stepper Component
+function Stepper({ currentStep, onStepChange }: StepperProps) {
+  const steps = [
+    { id: 1, title: "Tulis Cerita", icon: "✍️", description: "Tulis cerita menarik" },
+    { id: 2, title: "Tebak Penulis", icon: "🤔", description: "Tebak siapa penulisnya" },
+    { id: 3, title: "Review Hasil", icon: "📊", description: "Lihat hasil tebakan" }
+  ];
+
+  return (
+    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg mb-6">
+      <div className="flex items-center justify-between relative">
+        {/* Progress Line */}
+        <div className="absolute top-8 left-0 right-0 h-1 bg-white/20 rounded-full">
+          <div 
+            className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500"
+            style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+          />
+        </div>
+
+        {steps.map((step, index) => {
+          const isActive = currentStep === step.id;
+          const isCompleted = currentStep > step.id;
+          const isClickable = currentStep >= step.id;
+
+          return (
+            <div 
+              key={step.id} 
+              className="relative flex flex-col items-center cursor-pointer group"
+              onClick={() => isClickable && onStepChange(step.id)}
+            >
+              {/* Step Circle */}
+              <div 
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${
+                  isActive 
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110' 
+                    : isCompleted
+                    ? 'bg-green-500 text-white shadow-md'
+                    : 'bg-white/20 text-white/70 group-hover:bg-white/30'
+                }`}
+              >
+                {isCompleted ? '✅' : step.icon}
+              </div>
+
+              {/* Step Content */}
+              <div className="mt-3 text-center">
+                <h3 className={`font-bold text-sm lg:text-base transition-colors ${
+                  isActive ? 'text-white' : 'text-white/80'
+                }`}>
+                  {step.title}
+                </h3>
+                <p className="text-xs text-white/60 mt-1 hidden lg:block">
+                  {step.description}
+                </p>
+              </div>
+
+              {/* Active Indicator */}
+              {isActive && (
+                <div className="absolute -bottom-2 w-2 h-2 bg-white rounded-full animate-pulse" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // PlayerList Component
 function PlayerList({ players }: PlayerListProps) {
@@ -147,14 +219,6 @@ function Answer() {
     { id: '6', name: 'Aripp' },
   ];
 
-  // Mock data - jawaban sebelumnya
-  const previousAnswers: Answer[] = [
-    { id: '1', username: 'User261', answer: 'User1926', isCorrect: false },
-    { id: '2', username: 'User1926', answer: 'User6993', isCorrect: false },
-    { id: '3', username: 'User6993', answer: 'User8281', isCorrect: true },
-    { id: '4', username: 'User8281', answer: 'User8281', isCorrect: true },
-  ];
-
   const handleAnswerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedPlayer) {
@@ -241,39 +305,98 @@ function Answer() {
             🎯 Kirim Tebakan
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
 
-        {/* Previous Guesses Section */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            📊 Tebakan Pemain Lain
-          </h3>
-          <div className="max-h-40 overflow-y-auto space-y-2">
-            {previousAnswers.map((answer) => (
-              <div
-                key={answer.id}
-                className={`flex items-center gap-3 p-3 rounded-lg ${
-                  answer.isCorrect
-                    ? 'bg-green-50 border border-green-200'
-                    : 'bg-red-50 border border-red-200'
-                }`}
-              >
-                {answer.isCorrect ? (
-                  <span className="text-green-500 text-lg">✅</span>
-                ) : (
-                  <span className="text-red-500 text-lg">❌</span>
-                )}
-                <span className={`font-medium ${
-                  answer.isCorrect ? 'text-green-700' : 'text-red-600'
-                }`}>
-                  {answer.username}
-                </span>
-                <span className="text-gray-500">menebak:</span>
-                <span className={answer.isCorrect ? 'text-green-600' : 'text-gray-600'}>
-                  {answer.answer}
+// Review Component
+function Review() {
+  // Mock data - hasil tebakan pemain
+  const guessResults = [
+    { id: '1', player: 'User261', guess: 'User1926', correct: false, story: 'Saya pernah tidur di kelas...' },
+    { id: '2', player: 'User1926', guess: 'User6993', correct: false, story: 'Saya pernah tidur di kelas...' },
+    { id: '3', player: 'User6993', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas...' },
+    { id: '4', player: 'User8281', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas...' },
+  ];
+
+  return (
+    <div className="bg-gradient-to-br from-green-50 to-blue-100 rounded-xl shadow-lg h-full overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-4 px-6">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          📊 Review Hasil Tebakan
+        </h2>
+        <p className="text-green-100 text-sm mt-1">Lihat siapa yang berhasil menebak dengan benar</p>
+      </div>
+
+      {/* Content */}
+      <div className="p-6 h-full overflow-y-auto">
+        {/* Summary */}
+        <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-green-500 shadow-sm">
+          <h3 className="text-lg font-bold text-gray-800 mb-2">📈 Ringkasan</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {guessResults.filter(r => r.correct).length}
+              </div>
+              <div className="text-sm text-gray-600">Tebakan Benar</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {guessResults.filter(r => !r.correct).length}
+              </div>
+              <div className="text-sm text-gray-600">Tebakan Salah</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Results List */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">🎯 Detail Tebakan</h3>
+          {guessResults.map((result) => (
+            <div
+              key={result.id}
+              className={`flex items-center gap-4 p-4 rounded-lg border-2 ${
+                result.correct
+                  ? 'border-green-200 bg-green-50'
+                  : 'border-red-200 bg-red-50'
+              }`}
+            >
+              {/* Status Icon */}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                result.correct ? 'bg-green-500' : 'bg-red-500'
+              }`}>
+                <span className="text-white text-lg">
+                  {result.correct ? '✅' : '❌'}
                 </span>
               </div>
-            ))}
-          </div>
+
+              {/* Player Info */}
+              <div className="flex-grow">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`font-bold ${
+                    result.correct ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {result.player}
+                  </span>
+                  <span className="text-gray-500">menebak:</span>
+                  <span className="font-medium text-gray-700">{result.guess}</span>
+                </div>
+                <p className="text-sm text-gray-600 italic">"{result.story}"</p>
+              </div>
+
+              {/* Points */}
+              <div className="text-right">
+                <div className={`text-lg font-bold ${
+                  result.correct ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {result.correct ? '+10' : '+0'}
+                </div>
+                <div className="text-xs text-gray-500">points</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -295,18 +418,47 @@ const mockPlayers: Player[] = [
 
 export default function RoomPage() {
   const [players, setPlayers] = useState(mockPlayers);
-  const [gamePhase, setGamePhase] = useState<'writing' | 'guessing'>('writing');
+  const [currentStep, setCurrentStep] = useState<number>(1);
 
   const handleSubmitStory = (story: string) => {
     console.log("Submitted story:", story);
     // TODO: Implement socket.io connection to submit story
-    // After story submission, switch to guessing phase
-    // setGamePhase('guessing');
+    // After story submission, move to next step
+    setCurrentStep(2);
   };
 
   const handleSubmitAnswer = (answer: string) => {
     console.log("Submitted answer:", answer);
     // TODO: Implement socket.io connection to submit answer
+    // After answer submission, move to review step
+    setCurrentStep(3);
+  };
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="h-full flex items-center justify-center">
+            <div className="w-full max-w-4xl">
+              <StoryInput onSubmit={handleSubmitStory} />
+            </div>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="h-full">
+            <Answer />
+          </div>
+        );
+      case 3:
+        return (
+          <div className="h-full">
+            <Review />
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -340,45 +492,14 @@ export default function RoomPage() {
 
             {/* Main Game Area */}
             <div className="flex-1 order-1 lg:order-2 min-h-0">
-              <div className="h-full flex flex-col gap-4">
+              <div className="h-full flex flex-col">
+                
+                {/* Stepper */}
+                <Stepper currentStep={currentStep} onStepChange={setCurrentStep} />
                 
                 {/* Game Phase Content */}
                 <div className="flex-1 min-h-0">
-                  {gamePhase === 'writing' ? (
-                    <div className="h-full flex items-center justify-center">
-                      <div className="w-full max-w-4xl">
-                        <StoryInput onSubmit={handleSubmitStory} />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="h-full">
-                      <Answer />
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom Controls */}
-                <div className="flex-shrink-0 flex flex-col sm:flex-row gap-3 justify-center">
-                  <button
-                    onClick={() => setGamePhase('writing')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      gamePhase === 'writing'
-                        ? 'bg-white text-purple-600 shadow-lg'
-                        : 'bg-white/20 text-white hover:bg-white/30'
-                    }`}
-                  >
-                    ✍️ Tulis Cerita
-                  </button>
-                  <button
-                    onClick={() => setGamePhase('guessing')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      gamePhase === 'guessing'
-                        ? 'bg-white text-purple-600 shadow-lg'
-                        : 'bg-white/20 text-white hover:bg-white/30'
-                    }`}
-                  >
-                    🤔 Tebak Penulis
-                  </button>
+                  {renderCurrentStep()}
                 </div>
               </div>
             </div>
