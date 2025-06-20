@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import CardGame from "@/components/game/CardGame";
+import CardGame from "@/app/game/_components/CardGame";
 import GameLayout from "@/components/ui/GameLayout";
 
 interface Player {
