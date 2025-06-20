@@ -9,13 +9,25 @@ import { getCurrentTime12Hour } from "@/helper/timeUtils";
 
 // ============ COMPONENTS ============
 
-// Stepper Component
-function Stepper({ currentStep, onStepChange }: StepperProps) {
+// Stepper Component - Updated
+function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: StepperProps & { allowBackNavigation?: boolean }) {
   const steps = [
     { id: 1, title: "Tulis Cerita", icon: "✍️", description: "" },
     { id: 2, title: "Tebak Penulis", icon: "🤔", description: "" },
     { id: 3, title: "Review Hasil", icon: "📊", description: "" }
   ];
+
+  const handleStepClick = (stepId: number) => {
+    // Jika allowBackNavigation false, hanya bisa ke step yang sama atau lebih tinggi
+    if (!allowBackNavigation && stepId < currentStep) {
+      return; // Tidak bisa kembali ke step sebelumnya
+    }
+    
+    // Jika allowBackNavigation true, atau step yang diklik >= currentStep
+    if (allowBackNavigation || stepId <= currentStep) {
+      onStepChange(stepId);
+    }
+  };
 
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg mb-6">
@@ -31,30 +43,41 @@ function Stepper({ currentStep, onStepChange }: StepperProps) {
         {steps.map((step, index) => {
           const isActive = currentStep === step.id;
           const isCompleted = currentStep > step.id;
-          const isClickable = currentStep >= step.id;
+          const isClickable = allowBackNavigation ? true : step.id <= currentStep; // Hanya bisa klik jika allowBackNavigation true atau step <= currentStep
+          const isDisabled = !allowBackNavigation && step.id < currentStep; // Disabled jika tidak bisa back navigation dan step < currentStep
 
           return (
             <div
               key={step.id}
-              className="relative flex flex-col items-center cursor-pointer group"
-              onClick={() => isClickable && onStepChange(step.id)}
+              className={`relative flex flex-col items-center group ${
+                isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+              }`}
+              onClick={() => handleStepClick(step.id)}
             >
               {/* Step Circle */}
               <div
-                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${isActive
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110'
-                  : isCompleted
-                    ? 'bg-green-500 text-white shadow-md'
-                    : 'bg-white/20 text-white/70 group-hover:bg-white/30'
-                  }`}
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110'
+                    : isCompleted
+                      ? 'bg-green-500 text-white shadow-md'
+                      : isDisabled
+                        ? 'bg-gray-400/50 text-gray-300 cursor-not-allowed' // Style untuk disabled
+                        : 'bg-white/20 text-white/70 group-hover:bg-white/30'
+                }`}
               >
                 {isCompleted ? '✅' : step.icon}
               </div>
 
               {/* Step Content */}
               <div className="mt-3 text-center">
-                <h3 className={`font-bold text-sm lg:text-base transition-colors ${isActive ? 'text-white' : 'text-white/80'
-                  }`}>
+                <h3 className={`font-bold text-sm lg:text-base transition-colors ${
+                  isActive 
+                    ? 'text-white' 
+                    : isDisabled 
+                      ? 'text-white/40' 
+                      : 'text-white/80'
+                }`}>
                   {step.title}
                 </h3>
                 <p className="text-xs text-white/60 mt-1 hidden lg:block">
@@ -65,6 +88,13 @@ function Stepper({ currentStep, onStepChange }: StepperProps) {
               {/* Active Indicator */}
               {isActive && (
                 <div className="absolute -bottom-2 w-2 h-2 bg-white rounded-full animate-pulse" />
+              )}
+
+              {/* Lock Icon untuk step yang tidak bisa diakses */}
+              {isDisabled && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">🔒</span>
+                </div>
               )}
             </div>
           );
@@ -489,11 +519,76 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
         {/* Accuracy Score */}
-        <div className="mb-6 p-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white text-center shadow-lg">
+        {/* <div className="mb-6 p-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl text-white text-center shadow-lg">
           <div className="text-5xl font-bold mb-2">{accuracyPercentage}%</div>
           <div className="text-emerald-100 text-lg">Tingkat Akurasi</div>
           <div className="text-emerald-200 text-sm mt-1">
             {correctGuesses} dari {totalGuesses} tebakan benar
+          </div>
+        </div> */}
+        {/* add who has questions author , story */}
+         {/* Story Author Reveal Section */}
+         <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-4 -translate-x-4"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-2xl">📖</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Penulis Cerita Terungkap!</h3>
+                <p className="text-blue-100 text-sm">Inilah siapa yang menulis cerita tersebut</p>
+              </div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="flex items-start gap-4">
+                {/* Author Avatar */}
+                <div className="flex-shrink-0">
+                  <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-2xl">👤</span>
+                  </div>
+                  <div className="mt-2 text-center">
+                    <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                      Penulis
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Story Content */}
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-bold text-lg">User8281</span>
+                    <span className="text-blue-200">menulis cerita:</span>
+                  </div>
+                  <div className="bg-white/20 rounded-lg p-3 border-l-4 border-yellow-400">
+                    <p className="text-white/90 italic leading-relaxed">
+                      "Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam"
+                    </p>
+                  </div>
+                  
+                  {/* Story Stats */}
+                  <div className="mt-3 flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <span>🎯</span>
+                      <span>{correctGuesses} orang menebak benar</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>❌</span>
+                      <span>{totalGuesses - correctGuesses} orang salah tebak</span>
+                    </div>
+                    {/* add emoticon here */}
+                    {/* <div className="flex items-center gap-1">
+                      <span>📊</span>
+                      <span>{accuracyPercentage}% akurasi</span>
+                    </div> */}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -654,6 +749,7 @@ export default function RoomPage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [roomStatus, setRoomStatus] = useState<'open' | 'in_progress' | 'full' | 'closed'>('open');
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [gameFinished, setGameFinished] = useState(false); // Track jika game sudah selesai
 
   // Memoize updateTime function dengan useCallback
   const updateTime = useCallback(() => {
@@ -668,6 +764,13 @@ export default function RoomPage() {
     return () => clearInterval(interval); // Cleanup
   }, [updateTime]); // Sekarang dependency array berisi updateTime yang sudah di-memoize
 
+  const handleStepChange = (step: number) => {
+    // Hanya bisa change step jika game sudah selesai atau step yang dipilih <= currentStep
+    if (gameFinished || step <= currentStep) {
+      setCurrentStep(step);
+    }
+  };
+
   const handleSubmitStory = (story: string) => {
     console.log("Submitted story:", story);
     // TODO: Implement socket.io connection to submit story
@@ -680,6 +783,12 @@ export default function RoomPage() {
     // TODO: Implement socket.io connection to submit answer
     // After answer submission, move to review step
     setCurrentStep(3);
+    setGameFinished(true); // Mark game as finished
+  };
+
+  const handlePlayAgain = () => {
+    setCurrentStep(1);
+    setGameFinished(false); // Reset game finished status
   };
 
   const renderCurrentStep = () => {
@@ -762,8 +871,12 @@ export default function RoomPage() {
             <div className="flex-1 order-1 lg:order-2 min-h-0">
               <div className="h-full flex flex-col">
 
-                {/* Stepper */}
-                <Stepper currentStep={currentStep} onStepChange={setCurrentStep} />
+                {/* Stepper dengan allowBackNavigation berdasarkan gameFinished */}
+                <Stepper 
+                  currentStep={currentStep} 
+                  onStepChange={handleStepChange}
+                  allowBackNavigation={gameFinished} // Hanya bisa back navigation jika game sudah selesai
+                />
 
                 {/* Game Phase Content */}
                 <div className="flex-1 min-h-0">

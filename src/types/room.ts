@@ -47,6 +47,7 @@ export interface GuessPlayer {
 export interface StepperProps {
   currentStep: number;
   onStepChange: (step: number) => void;
+  allowBackNavigation?: boolean;
 }
 
 export type GamePhase = 
