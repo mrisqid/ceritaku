@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../utils/supabaseClient";
 
 const AVATARS = ["😃", "🦊", "🐼", "🐸", "🦄", "🐧", "🐯", "🐵", "🐱", "🐶"];
 
@@ -26,10 +27,10 @@ export default function Home() {
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomCode, setNewRoomCode] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(3);
-  const [maxScore, setMaxScore] = useState(15);
   const [shareMsg, setShareMsg] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
   const [showJoinError, setShowJoinError] = useState(false);
+  const [joinErrorMsg, setJoinErrorMsg] = useState("");
   const [createRoomLoading, setCreateRoomLoading] = useState(false);
   const router = useRouter();
 
@@ -65,7 +66,6 @@ export default function Home() {
     // Open modal and generate code
     setNewRoomName(playerName ? `Ruangan ${playerName}` : "Ruangan Baru");
     setMaxPlayers(3);
-    setMaxScore(15);
     setNewRoomCode(generateRoomCode());
     setShowCreateRoomModal(true);
     setShareMsg("");
@@ -74,7 +74,45 @@ export default function Home() {
   const handleCreateRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateRoomLoading(true);
-    await new Promise((r) => setTimeout(r, 900)); // simulate loading
+    // 1. Insert room
+    const { data: roomData, error: roomError } = await supabase
+      .from("rooms")
+      .insert([
+        {
+          code: newRoomCode,
+          name: newRoomName,
+        },
+      ])
+      .select()
+      .single();
+    if (roomError || !roomData) {
+      setCreateRoomLoading(false);
+      setShowCreateRoomModal(false);
+      setJoinErrorMsg("Gagal membuat ruangan. Silakan coba lagi.");
+      setShowJoinError(true);
+      return;
+    }
+    // 2. Insert player (host)
+    const { data: playerData, error: playerError } = await supabase
+      .from("players")
+      .insert([
+        {
+          room_id: roomData.id,
+          name: playerName,
+          avatar,
+          is_host: true,
+        },
+      ])
+      .select()
+      .single();
+    if (playerError || !playerData) {
+      setCreateRoomLoading(false);
+      setShowCreateRoomModal(false);
+      setJoinErrorMsg("Gagal menambahkan host ke ruangan.");
+      setShowJoinError(true);
+      return;
+    }
+    // 3. Simulate loading, redirect
     setShowCreateRoomModal(false);
     setCreateRoomLoading(false);
     router.push(`/room/${newRoomCode}`);
@@ -95,14 +133,39 @@ export default function Home() {
   const handleJoinRoom = async () => {
     if (!roomCode.trim()) return;
     setJoinLoading(true);
-    // Simulate validation: code must be 6 chars, uppercase letters/numbers only
-    const valid = /^[A-Z0-9]{6}$/.test(roomCode.trim());
-    await new Promise((r) => setTimeout(r, 800)); // simulate loading
-    if (!valid) {
+    // 1. Check if room exists
+    const { data: room, error: roomErr } = await supabase
+      .from("rooms")
+      .select("id, code")
+      .eq("code", roomCode.trim())
+      .single();
+    if (roomErr || !room) {
       setJoinLoading(false);
+      setJoinErrorMsg("Kode ruangan tidak ditemukan.");
       setShowJoinError(true);
       return;
     }
+    // 2. Insert player
+    const { data: playerData, error: playerError } = await supabase
+      .from("players")
+      .insert([
+        {
+          room_id: room.id,
+          name: playerName,
+          avatar,
+          is_host: false,
+        },
+      ])
+      .select()
+      .single();
+    if (playerError || !playerData) {
+      setJoinLoading(false);
+      setJoinErrorMsg("Gagal join ke ruangan. Coba lagi.");
+      setShowJoinError(true);
+      return;
+    }
+    // 3. Redirect
+    setJoinLoading(false);
     router.push(`/room/${roomCode.trim()}`);
   };
 
@@ -322,20 +385,6 @@ export default function Home() {
                     <option value={5}>5 Orang</option>
                   </select>
                   <label className="text-blue-700 font-semibold text-sm">
-                    Score Maksimal Leaderboard
-                  </label>
-                  <select
-                    value={maxScore}
-                    onChange={(e) => setMaxScore(Number(e.target.value))}
-                    className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
-                  >
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={20}>20</option>
-                    <option value={25}>25</option>
-                    <option value={30}>30</option>
-                  </select>
-                  <label className="text-blue-700 font-semibold text-sm">
                     Kode Ruangan
                   </label>
                   <div className="flex items-center gap-2">
@@ -476,7 +525,8 @@ export default function Home() {
                   Kode Ruangan Tidak Valid
                 </h3>
                 <p className="text-red-700 text-center mb-2">
-                  Kode ruangan harus 6 karakter, huruf kapital/angka.
+                  {joinErrorMsg ||
+                    "Kode ruangan harus 6 karakter, huruf kapital/angka."}
                 </p>
                 <button
                   onClick={() => setShowJoinError(false)}
