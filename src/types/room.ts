@@ -1,7 +1,9 @@
 export interface Player {
   id: string;
   name: string;
-  hasSubmitted: boolean;
+  points?: number;
+  isCurrentTurn?: boolean;
+  hasSubmitted?: boolean;
 }
 
 export interface Story {
