@@ -339,7 +339,7 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
         </div>
 
         {/* Extra space for content below sticky button */}
-        <div className="h-20"></div>
+        <div className="h-2"></div>
       </div>
 
       {/* Sticky Submit Button */}
@@ -460,8 +460,8 @@ function GenreSelection() {
 }
 
 // Enhanced Review Component
-function Review() {
- const router = useRouter(); // Initialize router
+function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
+  const router = useRouter();
   const [showConfetti, setShowConfetti] = useState(true);
 
   // Mock data - hasil tebakan pemain
@@ -632,17 +632,18 @@ function Review() {
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4">
           <button
-            onClick={() => setShowConfetti(!showConfetti)}
-            // onClick={() => setCurrentStep(1)}
+            onClick={onPlayAgain}
             className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
           >
-             lobby
+            {/* 🔄 Main Lagi */}
+            Lobby
           </button>
-          {/* 🎊 */}
-          <button onClick={() => router.push('/')} className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-             Keluar Room
+          <button
+            onClick={() => router.push('/')}
+            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+          >
+            🚪 Keluar Room
           </button>
-          {/* 🔄 */}
         </div>
       </div>
     </div>
@@ -702,7 +703,7 @@ export default function RoomPage() {
       case 3:
         return (
           <div className="h-full custom-scrollbar">
-            <Review />
+            <Review onPlayAgain={() => setCurrentStep(1)} />
           </div>
         );
       default:
