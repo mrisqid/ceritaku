@@ -230,17 +230,17 @@ function Answer() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl shadow-lg h-full overflow-hidden">
+    <div className="bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl shadow-lg h-full overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 flex-shrink-0">
         <h2 className="text-xl font-bold flex items-center gap-2">
           🤔 Siapa Yang Menulis Cerita Ini?
         </h2>
         <p className="text-purple-100 text-sm mt-1">Tebak siapa penulis cerita di bawah ini</p>
       </div>
 
-      {/* Content */}
-      <div className="p-6 h-full overflow-y-auto">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto p-6">
         {/* Story Display */}
         <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-purple-500 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500 mb-2">📖 Cerita:</h3>
@@ -249,62 +249,72 @@ function Answer() {
           </p>
         </div>
 
-        <form onSubmit={handleAnswerSubmit} className="space-y-4">
-          {/* Player Options */}
-          <div className="space-y-3">
-            <h4 className="text-md font-semibold text-gray-700 mb-3">
-              Pilih siapa yang menulis cerita ini:
-            </h4>
-            {players.map((player) => (
-              <label
-                key={player.id}
-                className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                  selectedPlayer === player.id
-                    ? 'border-purple-500 bg-purple-50 shadow-md'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="player"
-                  value={player.id}
-                  checked={selectedPlayer === player.id}
-                  onChange={(e) => setSelectedPlayer(e.target.value)}
-                  className="sr-only"
-                />
-                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                  selectedPlayer === player.id
-                    ? 'border-purple-500 bg-purple-500'
-                    : 'border-gray-300'
-                }`}>
-                  {selectedPlayer === player.id && (
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </div>
-                
-                {/* Player Avatar */}
-                <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
-                  👤
-                </div>
-                
-                <span className={`font-medium ${
-                  selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
-                }`}>
-                  {player.name}
-                </span>
-              </label>
-            ))}
-          </div>
+        {/* Player Options */}
+        <div className="space-y-3">
+          <h4 className="text-md font-semibold text-gray-700 mb-3">
+            Pilih siapa yang menulis cerita ini:
+          </h4>
+          {players.map((player) => (
+            <label
+              key={player.id}
+              className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                selectedPlayer === player.id
+                  ? 'border-purple-500 bg-purple-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <input
+                type="radio"
+                name="player"
+                value={player.id}
+                checked={selectedPlayer === player.id}
+                onChange={(e) => setSelectedPlayer(e.target.value)}
+                className="sr-only"
+              />
+              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                selectedPlayer === player.id
+                  ? 'border-purple-500 bg-purple-500'
+                  : 'border-gray-300'
+              }`}>
+                {selectedPlayer === player.id && (
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                )}
+              </div>
+              
+              {/* Player Avatar */}
+              <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
+                👤
+              </div>
+              
+              <span className={`font-medium ${
+                selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
+              }`}>
+                {player.name}
+              </span>
+            </label>
+          ))}
+        </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={!selectedPlayer}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            🎯 Kirim Tebakan
-          </button>
-        </form>
+        {/* Extra space for content below sticky button */}
+        <div className="h-0"></div>
+      </div>
+
+      {/* Sticky Submit Button */}
+      <div className="flex-shrink-0 sticky bottom-0 bg-white border-t border-gray-200 p-4">
+        <button
+          onClick={handleAnswerSubmit}
+          disabled={!selectedPlayer}
+          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${
+            selectedPlayer
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-xl hover:scale-105'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          {selectedPlayer 
+            ? `🎯 Kirim Tebakan: ${players.find(p => p.id === selectedPlayer)?.name}` 
+            : '🤔 Pilih pemain terlebih dahulu'
+          }
+        </button>
       </div>
     </div>
   );
