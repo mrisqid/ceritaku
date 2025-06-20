@@ -6,7 +6,7 @@ interface GameLayoutProps {
 
 export default function GameLayout({ children }: GameLayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-yellow-200 to-yellow-400 relative overflow-hidden font-poppins">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-black/10"></div>
       <div className="absolute top-0 left-0 w-72 h-72 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
