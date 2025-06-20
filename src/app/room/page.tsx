@@ -44,7 +44,7 @@ function Stepper({ currentStep, onStepChange }: StepperProps) {
       <div className="flex items-center justify-between relative">
         {/* Progress Line */}
         <div className="absolute top-8 left-0 right-0 h-1 bg-white/20 rounded-full">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-purple-400 to-pink-400 rounded-full transition-all duration-500"
             style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
           />
@@ -56,29 +56,27 @@ function Stepper({ currentStep, onStepChange }: StepperProps) {
           const isClickable = currentStep >= step.id;
 
           return (
-            <div 
-              key={step.id} 
+            <div
+              key={step.id}
               className="relative flex flex-col items-center cursor-pointer group"
               onClick={() => isClickable && onStepChange(step.id)}
             >
               {/* Step Circle */}
-              <div 
-                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${
-                  isActive 
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110' 
-                    : isCompleted
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${isActive
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110'
+                  : isCompleted
                     ? 'bg-green-500 text-white shadow-md'
                     : 'bg-white/20 text-white/70 group-hover:bg-white/30'
-                }`}
+                  }`}
               >
                 {isCompleted ? '✅' : step.icon}
               </div>
 
               {/* Step Content */}
               <div className="mt-3 text-center">
-                <h3 className={`font-bold text-sm lg:text-base transition-colors ${
-                  isActive ? 'text-white' : 'text-white/80'
-                }`}>
+                <h3 className={`font-bold text-sm lg:text-base transition-colors ${isActive ? 'text-white' : 'text-white/80'
+                  }`}>
                   {step.title}
                 </h3>
                 <p className="text-xs text-white/60 mt-1 hidden lg:block">
@@ -100,6 +98,14 @@ function Stepper({ currentStep, onStepChange }: StepperProps) {
 
 // PlayerList Component
 function PlayerList({ players }: PlayerListProps) {
+  function handleKickPlayer(id: string): void {
+    throw new Error("Function not implemented.");
+  }
+
+  function handleReady(): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-lg h-full flex flex-col">
       {/* Header */}
@@ -113,7 +119,7 @@ function PlayerList({ players }: PlayerListProps) {
       <div className="flex-1 overflow-y-auto">
         <div className="p-2">
           {players.map((player, index) => (
-            <div 
+            <div
               key={player.id}
               className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors rounded-lg"
             >
@@ -149,8 +155,44 @@ function PlayerList({ players }: PlayerListProps) {
                   </span>
                 </div>
               )}
+              {player.isKicked && (
+                <div className="flex-shrink-0">
+                  <button onClick={() => handleKickPlayer(player.id)} className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+                    <span className="bg-red-100 text-red-800 text-xs px-0 py-1 rounded-full">
+                      ❌
+                    </span>
+                  </button>
+
+                </div>
+              )}
+              {player.isHost && (
+                <div className="flex-shrink-0">
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                    Host
+                  </span>
+                </div>
+              )}
+              {player.isWaiting && (
+                <div className="flex-shrink-0">
+                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+                    Waiting
+                  </span>
+                </div>
+              )}
+              {player.isReady && (
+                <div className="flex-shrink-0">
+                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                    Ready
+                  </span>
+                </div>
+              )}
             </div>
           ))}
+        </div>
+        <div className="p-2 flex justify-center items-center">
+          <button onClick={() => handleReady()} className="bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all border-2 border-blue-200 mt-2 w-full">
+            Ready
+          </button>
         </div>
       </div>
     </div>
@@ -225,7 +267,7 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
       console.log('Selected player:', selectedPlayer);
       const selectedPlayerName = players.find(p => p.id === selectedPlayer)?.name;
       console.log('Tebakan:', selectedPlayerName);
-      
+
       // Move to next step after successful submission
       onSubmitAnswer();
       setSelectedPlayer('');
@@ -260,11 +302,10 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
           {players.map((player) => (
             <label
               key={player.id}
-              className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                selectedPlayer === player.id
-                  ? 'border-purple-500 bg-purple-50 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
+              className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${selectedPlayer === player.id
+                ? 'border-purple-500 bg-purple-50 shadow-md'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
             >
               <input
                 type="radio"
@@ -274,24 +315,22 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
                 onChange={(e) => setSelectedPlayer(e.target.value)}
                 className="sr-only"
               />
-              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                selectedPlayer === player.id
-                  ? 'border-purple-500 bg-purple-500'
-                  : 'border-gray-300'
-              }`}>
+              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selectedPlayer === player.id
+                ? 'border-purple-500 bg-purple-500'
+                : 'border-gray-300'
+                }`}>
                 {selectedPlayer === player.id && (
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 )}
               </div>
-              
+
               {/* Player Avatar */}
               <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
                 👤
               </div>
-              
-              <span className={`font-medium ${
-                selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
-              }`}>
+
+              <span className={`font-medium ${selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
+                }`}>
                 {player.name}
               </span>
             </label>
@@ -307,14 +346,13 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
         <button
           onClick={handleAnswerSubmit}
           disabled={!selectedPlayer}
-          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${
-            selectedPlayer
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-xl hover:scale-105'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
+          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${selectedPlayer
+            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-xl hover:scale-105'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
         >
-          {selectedPlayer 
-            ? `🎯 Kirim Tebakan: ${players.find(p => p.id === selectedPlayer)?.name}` 
+          {selectedPlayer
+            ? `🎯 Kirim Tebakan: ${players.find(p => p.id === selectedPlayer)?.name}`
             : '🤔 Pilih pemain terlebih dahulu'
           }
         </button>
@@ -326,7 +364,7 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
 // Enhanced Review Component
 function Review() {
   const [showConfetti, setShowConfetti] = useState(true);
-  
+
   // Mock data - hasil tebakan pemain
   const guessResults = [
     { id: '1', player: 'User261', guess: 'User1926', correct: false, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 0 },
@@ -394,7 +432,7 @@ function Review() {
               <div className="text-3xl">✅</div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
             <div className="flex items-center justify-between">
               <div>
@@ -421,21 +459,19 @@ function Review() {
           <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             🎯 Detail Tebakan Pemain
           </h3>
-          
+
           {guessResults.map((result, index) => (
             <div
               key={result.id}
-              className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg ${
-                result.correct
-                  ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50'
-                  : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
-              }`}
+              className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg ${result.correct
+                ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50'
+                : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
+                }`}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Result Badge */}
-              <div className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${
-                result.correct ? 'bg-emerald-500' : 'bg-red-500'
-              }`}>
+              <div className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
+                }`}>
                 <span className="text-white text-sm font-bold">
                   {result.correct ? '✓' : '✗'}
                 </span>
@@ -444,18 +480,16 @@ function Review() {
               <div className="p-5">
                 <div className="flex items-center gap-4 mb-3">
                   {/* Player Avatar */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${
-                    result.correct ? 'bg-emerald-500' : 'bg-red-500'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
+                    }`}>
                     <span className="text-white">👤</span>
                   </div>
 
                   {/* Player Info */}
                   <div className="flex-grow">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`font-bold text-lg ${
-                        result.correct ? 'text-emerald-700' : 'text-red-700'
-                      }`}>
+                      <span className={`font-bold text-lg ${result.correct ? 'text-emerald-700' : 'text-red-700'
+                        }`}>
                         {result.player}
                       </span>
                       <span className="text-gray-500">menebak:</span>
@@ -470,9 +504,8 @@ function Review() {
 
                   {/* Points Display */}
                   <div className="text-center">
-                    <div className={`text-2xl font-bold ${
-                      result.correct ? 'text-emerald-600' : 'text-red-600'
-                    }`}>
+                    <div className={`text-2xl font-bold ${result.correct ? 'text-emerald-600' : 'text-red-600'
+                      }`}>
                       +{result.points}
                     </div>
                     <div className="text-xs text-gray-500">poin</div>
@@ -481,11 +514,10 @@ function Review() {
 
                 {/* Progress bar for visual appeal */}
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-1000 ${
-                      result.correct ? 'bg-emerald-500' : 'bg-red-500'
-                    }`}
-                    style={{ 
+                  <div
+                    className={`h-2 rounded-full transition-all duration-1000 ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
+                      }`}
+                    style={{
                       width: result.correct ? '100%' : '30%',
                       animationDelay: `${index * 0.2}s`
                     }}
@@ -516,7 +548,7 @@ function Review() {
 // ============ MAIN PAGE COMPONENT ============
 const mockPlayers: Player[] = [
   { id: "1", name: "devil", points: 64, isCurrentTurn: true },
-  { id: "2", name: "JEN", points: 60 },
+  { id: "2", name: "JEN", points: 60, isKicked: true },
   { id: "3", name: "Lunie", points: 58 },
   { id: "4", name: "ObitoUvhiha", points: 9 },
   { id: "5", name: "TestTon", points: 8 },
@@ -548,11 +580,16 @@ export default function RoomPage() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="h-full flex items-center justify-center">
+          <div className="h-full flex flex-col">
             <div className="w-full max-w-4xl">
               <StoryInput onSubmit={handleSubmitStory} />
             </div>
+            <div className="w-full max-w-4xl">
+              {/* Genre Optional */}
+            </div>
           </div>
+          
+          
         );
       case 2:
         return (
@@ -592,7 +629,7 @@ export default function RoomPage() {
         {/* Main Content */}
         <div className="flex-1 min-h-0 p-4 lg:p-6">
           <div className="max-w-7xl mx-auto h-full flex flex-col lg:flex-row gap-4 lg:gap-6">
-            
+
             {/* Left Sidebar - Player List */}
             <div className="w-full lg:w-80 lg:flex-shrink-0 order-2 lg:order-1">
               <div className="h-64 lg:h-full">
@@ -603,10 +640,10 @@ export default function RoomPage() {
             {/* Main Game Area */}
             <div className="flex-1 order-1 lg:order-2 min-h-0">
               <div className="h-full flex flex-col">
-                
+
                 {/* Stepper */}
                 <Stepper currentStep={currentStep} onStepChange={setCurrentStep} />
-                
+
                 {/* Game Phase Content */}
                 <div className="flex-1 min-h-0">
                   {renderCurrentStep()}

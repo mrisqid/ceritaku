@@ -1,4 +1,8 @@
 export interface Player {
+  isWaiting?: boolean;
+  isReady?: boolean;
+  isHost?: boolean;
+  isKicked?: boolean;
   id: string;
   name: string;
   points?: number;
