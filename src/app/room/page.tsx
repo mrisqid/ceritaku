@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 // Import helper function
 import { getCurrentTime12Hour } from "@/helper/timeUtils";
+import EmojiReaction from "@/components/ui/EmojiReaction";
 
 // ============ COMPONENTS ============
 
@@ -22,7 +23,7 @@ function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: Ste
     if (!allowBackNavigation && stepId < currentStep) {
       return; // Tidak bisa kembali ke step sebelumnya
     }
-    
+
     // Jika allowBackNavigation true, atau step yang diklik >= currentStep
     if (allowBackNavigation || stepId <= currentStep) {
       onStepChange(stepId);
@@ -49,35 +50,32 @@ function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: Ste
           return (
             <div
               key={step.id}
-              className={`relative flex flex-col items-center group ${
-                isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
-              }`}
+              className={`relative flex flex-col items-center group ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+                }`}
               onClick={() => handleStepClick(step.id)}
             >
               {/* Step Circle */}
               <div
-                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${
-                  isActive
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${isActive
                     ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110'
                     : isCompleted
                       ? 'bg-green-500 text-white shadow-md'
                       : isDisabled
                         ? 'bg-gray-400/50 text-gray-300 cursor-not-allowed' // Style untuk disabled
                         : 'bg-white/20 text-white/70 group-hover:bg-white/30'
-                }`}
+                  }`}
               >
                 {isCompleted ? '✅' : step.icon}
               </div>
 
               {/* Step Content */}
               <div className="mt-3 text-center">
-                <h3 className={`font-bold text-sm lg:text-base transition-colors ${
-                  isActive 
-                    ? 'text-white' 
-                    : isDisabled 
-                      ? 'text-white/40' 
+                <h3 className={`font-bold text-sm lg:text-base transition-colors ${isActive
+                    ? 'text-white'
+                    : isDisabled
+                      ? 'text-white/40'
                       : 'text-white/80'
-                }`}>
+                  }`}>
                   {step.title}
                 </h3>
                 <p className="text-xs text-white/60 mt-1 hidden lg:block">
@@ -527,12 +525,12 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
           </div>
         </div> */}
         {/* add who has questions author , story */}
-         {/* Story Author Reveal Section */}
-         <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg relative overflow-hidden">
+        {/* Story Author Reveal Section */}
+        <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg relative overflow-hidden">
           {/* Background decoration */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-4 -translate-x-4"></div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
@@ -543,7 +541,7 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
                 <p className="text-blue-100 text-sm">Inilah siapa yang menulis cerita tersebut</p>
               </div>
             </div>
-            
+
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
               <div className="flex items-start gap-4">
                 {/* Author Avatar */}
@@ -557,7 +555,7 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Story Content */}
                 <div className="flex-grow">
                   <div className="flex items-center gap-2 mb-2">
@@ -569,7 +567,7 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
                       "Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam"
                     </p>
                   </div>
-                  
+
                   {/* Story Stats */}
                   <div className="mt-3 flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1">
@@ -580,11 +578,16 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
                       <span>❌</span>
                       <span>{totalGuesses - correctGuesses} orang salah tebak</span>
                     </div>
-                    {/* add emoticon here */}
+
                     {/* <div className="flex items-center gap-1">
                       <span>📊</span>
                       <span>{accuracyPercentage}% akurasi</span>
                     </div> */}
+                    {/* add emoticon reaksi  here */}
+                    <div className="rounded-lg">
+
+                      <EmojiReaction storyId="story1" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -837,12 +840,11 @@ export default function RoomPage() {
               <div className="text-white/80 text-sm">
                 Room: #ABC123
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                roomStatus === 'open' ? 'bg-green-500/20 text-green-300' :
-                roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
-                roomStatus === 'full' ? 'bg-red-500/20 text-red-300' :
-                'bg-gray-500/20 text-gray-300'
-              }`}>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${roomStatus === 'open' ? 'bg-green-500/20 text-green-300' :
+                  roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
+                    roomStatus === 'full' ? 'bg-red-500/20 text-red-300' :
+                      'bg-gray-500/20 text-gray-300'
+                }`}>
                 {roomStatus === 'open' && '🟢 Terbuka'}
                 {roomStatus === 'in_progress' && '🟡 Sedang Bermain'}
                 {roomStatus === 'full' && '🔴 Penuh'}
@@ -872,8 +874,8 @@ export default function RoomPage() {
               <div className="h-full flex flex-col">
 
                 {/* Stepper dengan allowBackNavigation berdasarkan gameFinished */}
-                <Stepper 
-                  currentStep={currentStep} 
+                <Stepper
+                  currentStep={currentStep}
                   onStepChange={handleStepChange}
                   allowBackNavigation={gameFinished} // Hanya bisa back navigation jika game sudah selesai
                 />
