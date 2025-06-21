@@ -216,8 +216,8 @@ function PlayerList({ players, onReady, currentUserId, gameStarted }: PlayerList
           <button
             onClick={onReady}
             className={`w-full font-bold py-3 px-6 rounded-lg shadow-md transition-all border-2 ${currentUser?.isReady
-                ? 'bg-gray-400 hover:bg-gray-500 text-white border-gray-300'
-                : 'bg-green-500 hover:bg-green-600 text-white border-green-300'
+              ? 'bg-gray-400 hover:bg-gray-500 text-white border-gray-300'
+              : 'bg-green-500 hover:bg-green-600 text-white border-green-300'
               }`}
           >
             {currentUser?.isReady ? '❌ Batal Siap' : '✅ Ready'}
@@ -275,7 +275,7 @@ function StoryInput({ onSubmit }: StoryInputProps) {
   );
 }
 
-// Answer Component - Updated
+// Answer Component - Updated with Countdown
 function Answer({
   currentStory,
   players,
@@ -286,9 +286,11 @@ function Answer({
   onSubmitAnswer: (guessedPlayerId: string) => void;
 }) {
   const [selectedPlayer, setSelectedPlayer] = useState('');
+  const [countdown, setCountdown] = useState(10); // 10 detik countdown
+  const [isTimeUp, setIsTimeUp] = useState(false);
 
   // Convert Player[] ke GuessPlayer[] format dan exclude current user
-  const currentUserId = 'User8281'; // ID user saat ini (dari session/auth)
+  const currentUserId = '1'; // ID user saat ini (dari session/auth)
   const availablePlayers: GuessPlayer[] = players
     .filter(player => player.id !== currentUserId) // Exclude current user
     .map(player => ({
@@ -296,9 +298,29 @@ function Answer({
       name: player.name
     }));
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown > 0 && !isTimeUp) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    } else if (countdown === 0 && !isTimeUp) {
+      // Waktu habis - auto submit dengan jawaban kosong
+      setIsTimeUp(true);
+      handleTimeUp();
+    }
+  }, [countdown, isTimeUp]);
+
+  const handleTimeUp = () => {
+    // Auto submit dengan jawaban kosong (akan mendapat 0 poin)
+    onSubmitAnswer(''); // Empty string berarti tidak ada tebakan
+  };
+
   const handleAnswerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedPlayer) {
+    if (selectedPlayer && !isTimeUp) {
       const selectedPlayerName = availablePlayers.find(p => p.id === selectedPlayer)?.name;
       console.log('Tebakan:', selectedPlayerName);
 
@@ -308,15 +330,64 @@ function Answer({
     }
   };
 
+  // Determine countdown color based on time remaining
+  const getCountdownColor = () => {
+    if (countdown <= 3) return 'text-red-400';
+    if (countdown <= 5) return 'text-orange-400';
+    return 'text-purple-100';
+  };
+
+  const getCountdownBgColor = () => {
+    if (countdown <= 3) return 'bg-red-500/20';
+    if (countdown <= 5) return 'bg-orange-500/20';
+    return 'bg-purple-500/20';
+  };
+
   return (
     <div className="bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl shadow-lg h-full overflow-hidden flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 flex-shrink-0">
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          🤔 Siapa Yang Menulis Cerita Ini?
-        </h2>
-        <p className="text-purple-100 text-sm mt-1">Tebak siapa penulis cerita di bawah ini</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              🤔 Siapa Yang Menulis Cerita Ini?
+            </h2>
+            <p className="text-purple-100 text-sm mt-1">Tebak siapa penulis cerita di bawah ini</p>
+          </div>
+          
+          {/* Countdown Display */}
+          <div className="flex flex-col items-center">
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${getCountdownBgColor()} border border-white/20`}>
+              <span className="text-lg">⏰</span>
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${getCountdownColor()} ${countdown <= 3 ? 'animate-pulse' : ''}`}>
+                  {countdown}
+                </div>
+                <div className="text-xs text-purple-100">detik</div>
+              </div>
+            </div>
+            {countdown <= 5 && (
+              <div className="text-xs text-yellow-200 mt-1 animate-bounce">
+                ⚠️ Waktu hampir habis!
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Time Up Overlay */}
+      {isTimeUp && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 text-center shadow-2xl">
+            <div className="text-6xl mb-4">⏰</div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">Waktu Habis!</h3>
+            <p className="text-gray-600 mb-4">Anda tidak sempat menebak</p>
+            <div className="bg-red-100 text-red-800 px-4 py-2 rounded-lg">
+              <span className="font-medium">+0 poin</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-6">
@@ -348,23 +419,28 @@ function Answer({
             availablePlayers.map((player) => (
               <label
                 key={player.id}
-                className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${selectedPlayer === player.id
-                  ? 'border-purple-500 bg-purple-50 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
+                className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                  isTimeUp 
+                    ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-100'
+                    : selectedPlayer === player.id
+                      ? 'border-purple-500 bg-purple-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
               >
                 <input
                   type="radio"
                   name="player"
                   value={player.id}
                   checked={selectedPlayer === player.id}
-                  onChange={(e) => setSelectedPlayer(e.target.value)}
+                  onChange={(e) => !isTimeUp && setSelectedPlayer(e.target.value)}
                   className="sr-only"
+                  disabled={isTimeUp}
                 />
-                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selectedPlayer === player.id
-                  ? 'border-purple-500 bg-purple-500'
-                  : 'border-gray-300'
-                  }`}>
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                  selectedPlayer === player.id
+                    ? 'border-purple-500 bg-purple-500'
+                    : 'border-gray-300'
+                }`}>
                   {selectedPlayer === player.id && (
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   )}
@@ -375,8 +451,9 @@ function Answer({
                   👤
                 </div>
 
-                <span className={`font-medium ${selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
-                  }`}>
+                <span className={`font-medium ${
+                  selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
+                }`}>
                   {player.name}
                 </span>
               </label>
@@ -396,17 +473,20 @@ function Answer({
       <div className="flex-shrink-0 sticky bottom-0 bg-white border-t border-gray-200 p-4">
         <button
           onClick={handleAnswerSubmit}
-          disabled={!selectedPlayer || availablePlayers.length === 0}
-          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${selectedPlayer && availablePlayers.length > 0
-            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-xl hover:scale-105'
-            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+          disabled={!selectedPlayer || availablePlayers.length === 0 || isTimeUp}
+          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${
+            selectedPlayer && availablePlayers.length > 0 && !isTimeUp
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-xl hover:scale-105'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
         >
-          {availablePlayers.length === 0
-            ? '😔 Tidak ada pemain untuk ditebak'
-            : selectedPlayer
-              ? `🎯 Kirim Tebakan: ${availablePlayers.find(p => p.id === selectedPlayer)?.name}`
-              : '🤔 Pilih pemain terlebih dahulu'
+          {isTimeUp
+            ? '⏰ Waktu Habis - Tidak Ada Tebakan'
+            : availablePlayers.length === 0
+              ? '😔 Tidak ada pemain untuk ditebak'
+              : selectedPlayer
+                ? `🎯 Kirim Tebakan: ${availablePlayers.find(p => p.id === selectedPlayer)?.name}`
+                : '🤔 Pilih pemain terlebih dahulu'
           }
         </button>
       </div>
@@ -540,8 +620,8 @@ function Review({
                     <div className="flex items-center gap-2">
                       <span className={`text-2xl ${isGuessCorrect ? '✅' : '❌'}`}></span>
                       <span className="font-medium break-words">
-                        Tebakan Anda: {guessedPlayerName}
-                        {isGuessCorrect ? ' (BENAR! +10 poin)' : ' (SALAH)'}
+                        Tebakan Anda: {playerGuess === '' ? 'Tidak menebak (waktu habis)' : guessedPlayerName}
+                        {playerGuess === '' ? ' (+0 poin)' : isGuessCorrect ? ' (BENAR! +10 poin)' : ' (SALAH)'}
                       </span>
                     </div>
                   </div>
@@ -850,10 +930,10 @@ function Lobby({
           <div className="mb-4 bg-white/20 rounded-full h-3 overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ease-out ${allPlayersReady
-                  ? countdown !== null
-                    ? 'bg-gradient-to-r from-orange-400 to-red-500'
-                    : 'bg-gradient-to-r from-green-400 to-emerald-500'
-                  : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                ? countdown !== null
+                  ? 'bg-gradient-to-r from-orange-400 to-red-500'
+                  : 'bg-gradient-to-r from-green-400 to-emerald-500'
+                : 'bg-gradient-to-r from-blue-400 to-purple-500'
                 }`}
               style={{ width: `${(readyPlayers.length / Math.max(players.length, 1)) * 100}%` }}
             />
@@ -865,10 +945,10 @@ function Lobby({
               <div
                 key={player.id}
                 className={`flex items-center gap-3 p-3 rounded-lg transition-all ${player.isReady
-                    ? countdown !== null
-                      ? 'bg-orange-500/20 border border-orange-400/30'
-                      : 'bg-green-500/20 border border-green-400/30'
-                    : 'bg-white/10 border border-white/20'
+                  ? countdown !== null
+                    ? 'bg-orange-500/20 border border-orange-400/30'
+                    : 'bg-green-500/20 border border-green-400/30'
+                  : 'bg-white/10 border border-white/20'
                   }`}
               >
                 {/* Avatar */}
@@ -1181,7 +1261,7 @@ export default function RoomPage() {
   // Fungsi untuk menghitung hasil tebakan dan update poin
   const calculateGuessResults = (userGuess: string, authorId: string) => {
     const currentUserId = '1'; // ID user saat ini (sesuaikan dengan session/auth)
-    const isUserGuessCorrect = userGuess === authorId;
+    const isUserGuessCorrect = userGuess === authorId && userGuess !== ''; // Empty string = salah
 
     // Generate hasil tebakan untuk semua pemain
     const results = players.map((player) => {
@@ -1211,7 +1291,7 @@ export default function RoomPage() {
 
       // Cari nama dari guess ID
       const guessedPlayer = players.find(p => p.id === guess);
-      const guessName = guessedPlayer ? guessedPlayer.name : guess;
+      const guessName = guess === '' ? 'Tidak menebak (waktu habis)' : (guessedPlayer ? guessedPlayer.name : guess);
 
       return {
         id: player.id,
@@ -1324,10 +1404,10 @@ export default function RoomPage() {
                 <div className="mb-4 bg-white/20 rounded-full h-3 overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 ease-out ${allPlayersReady
-                        ? countdown !== null
-                          ? 'bg-gradient-to-r from-orange-400 to-red-500'
-                          : 'bg-gradient-to-r from-green-400 to-emerald-500'
-                        : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                      ? countdown !== null
+                        ? 'bg-gradient-to-r from-orange-400 to-red-500'
+                        : 'bg-gradient-to-r from-green-400 to-emerald-500'
+                      : 'bg-gradient-to-r from-blue-400 to-purple-500'
                       }`}
                     style={{ width: `${(readyPlayers.length / Math.max(players.length, 1)) * 100}%` }}
                   />
@@ -1339,10 +1419,10 @@ export default function RoomPage() {
                     <div
                       key={player.id}
                       className={`flex items-center gap-3 p-3 rounded-lg transition-all ${player.isReady
-                          ? countdown !== null
-                            ? 'bg-orange-500/20 border border-orange-400/30'
-                            : 'bg-green-500/20 border border-green-400/30'
-                          : 'bg-white/10 border border-white/20'
+                        ? countdown !== null
+                          ? 'bg-orange-500/20 border border-orange-400/30'
+                          : 'bg-green-500/20 border border-green-400/30'
+                        : 'bg-white/10 border border-white/20'
                         }`}
                     >
                       {/* Avatar */}
@@ -1456,8 +1536,8 @@ export default function RoomPage() {
                 Room: #ABC123
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${roomStatus === 'lobby' ? 'bg-blue-500/20 text-blue-300' :
-                  roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
-                    'bg-green-500/20 text-green-300'
+                roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
+                  'bg-green-500/20 text-green-300'
                 }`}>
                 {roomStatus === 'lobby' && '🏠 Lobby'}
                 {roomStatus === 'in_progress' && '🎮 Bermain'}
