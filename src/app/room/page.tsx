@@ -104,6 +104,7 @@ function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: Ste
 
 // PlayerList Component
 function PlayerList({ players }: PlayerListProps) {
+  const router = useRouter();
   function handleKickPlayer(id: string): void {
     throw new Error("Function not implemented.");
   }
@@ -112,13 +113,28 @@ function PlayerList({ players }: PlayerListProps) {
     throw new Error("Function not implemented.");
   }
 
+  function handleLeaveRoom(): void {
+    // Fungsi untuk keluar dari room
+      // Logic untuk keluar room
+      router.push('/'); // atau menggunakan router
+   
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-lg h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex-shrink-0">
+      <div className="p-4 border-b border-gray-200 flex-shrink-0 flex justify-between items-center">
         <h2 className="font-bold text-gray-800 text-lg">
           Players ({players.length})
         </h2>
+        <button
+          onClick={handleLeaveRoom}
+          className="flex items-center gap-1 px-2 py-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 group"
+          title="Keluar dari room"
+        >
+          <span className="text-lg transition-transform group-hover:scale-110">🚪</span>
+          <span className="text-sm font-medium hidden sm:inline">Keluar</span>
+        </button>
       </div>
 
       {/* Scrollable Player List */}
@@ -198,8 +214,8 @@ function PlayerList({ players }: PlayerListProps) {
 
       {/* Ready Button - Fixed at bottom */}
       <div className="flex-shrink-0 p-4 border-t border-gray-200">
-        <button 
-          onClick={() => handleReady()} 
+        <button
+          onClick={() => handleReady()}
           className="bg-blue-400 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all border-2 border-blue-200 w-full"
         >
           Ready
@@ -305,7 +321,7 @@ function Answer({
         <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-purple-500 shadow-sm w-full">
           <h3 className="text-sm font-medium text-gray-500 mb-2">📖 Cerita:</h3>
           <div className="w-full overflow-hidden bg-gray-50 rounded-lg p-3">
-            <p 
+            <p
               className="text-lg text-gray-800 italic leading-relaxed"
               style={{
                 wordBreak: 'break-all',
@@ -383,7 +399,7 @@ function Answer({
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
         >
-          {availablePlayers.length === 0 
+          {availablePlayers.length === 0
             ? '😔 Tidak ada pemain untuk ditebak'
             : selectedPlayer
               ? `🎯 Kirim Tebakan: ${availablePlayers.find(p => p.id === selectedPlayer)?.name}`
@@ -511,7 +527,7 @@ function Review({
 
   // Hitung apakah tebakan benar
   const isGuessCorrect = playerGuess === storyAuthor;
-  
+
   const correctGuesses = guessResults.filter(r => r.correct).length;
   const totalGuesses = guessResults.length;
 
@@ -596,7 +612,7 @@ function Review({
                     <span className="text-blue-200">menulis cerita:</span>
                   </div>
                   <div className="bg-white/20 rounded-lg p-3 border-l-4 border-yellow-400 w-full overflow-hidden">
-                    <p 
+                    <p
                       className="text-white/90 italic leading-relaxed"
                       style={{
                         wordBreak: 'break-all',
@@ -615,7 +631,7 @@ function Review({
                     <div className="flex items-center gap-2">
                       <span className={`text-2xl ${isGuessCorrect ? '✅' : '❌'}`}></span>
                       <span className="font-medium break-words">
-                        Tebakan Anda: {guessedPlayerName} 
+                        Tebakan Anda: {guessedPlayerName}
                         {isGuessCorrect ? ' (BENAR! +10 poin)' : ' (SALAH)'}
                       </span>
                     </div>
@@ -722,7 +738,7 @@ function Review({
                       )}
                     </div>
                     <div className="bg-white/50 p-2 rounded overflow-hidden">
-                      <p 
+                      <p
                         className="text-sm text-gray-600 italic"
                         style={{
                           wordBreak: 'break-all',
@@ -790,7 +806,7 @@ function Review({
 // ============ MAIN PAGE COMPONENT ============
 const mockPlayers: Player[] = [
   { id: "1", name: "devil", points: 0, isCurrentTurn: true },
-  { id: "2", name: "JEN", points: 0,},
+  { id: "2", name: "JEN", points: 0, },
   { id: "3", name: "Lunie", points: 0 },
   { id: "4", name: "ObitoUvhiha", points: 0 },
   { id: "5", name: "TestTon", points: 0 },
@@ -811,7 +827,7 @@ export default function RoomPage() {
   const [roomStatus, setRoomStatus] = useState<'open' | 'in_progress' | 'full' | 'closed'>('open');
   const [currentTime, setCurrentTime] = useState<string>('');
   const [gameFinished, setGameFinished] = useState(false);
-  
+
   // State untuk menyimpan cerita dan penulis
   const [submittedStory, setSubmittedStory] = useState<string>('');
   const [selectedGenre, setSelectedGenre] = useState<string>('');
@@ -841,11 +857,11 @@ export default function RoomPage() {
 
   const handleSubmitStory = (story: string) => {
     console.log("Submitted story:", story);
-    
+
     // Simpan cerita dan author (misalnya current user)
     setSubmittedStory(story);
     setStoryAuthor('1'); // ID penulis sebenarnya (gunakan ID dari mockPlayers, misal "1" untuk "devil")
-    
+
     setCurrentStep(2);
   };
 
@@ -853,7 +869,7 @@ export default function RoomPage() {
   const generateRandomGuess = (playerId: string, authorId: string, allPlayers: Player[]) => {
     const availableTargets = allPlayers.filter(p => p.id !== playerId);
     if (availableTargets.length === 0) return authorId;
-    
+
     // 30% chance untuk menebak benar
     const shouldGuessCorrect = Math.random() < 0.3;
     if (shouldGuessCorrect) {
@@ -874,7 +890,7 @@ export default function RoomPage() {
     const results = players.map((player) => {
       let guess: string;
       let correct: boolean;
-      
+
       if (player.id === currentUserId) {
         // Untuk current user, gunakan tebakan yang sebenarnya
         guess = userGuess;
@@ -932,23 +948,23 @@ export default function RoomPage() {
 
   const handleSubmitAnswer = (guessedPlayerId: string) => {
     console.log("Submitted answer:", guessedPlayerId);
-    
+
     // Simpan tebakan pemain
     setPlayerGuess(guessedPlayerId);
-    
+
     // Hitung hasil tebakan untuk semua pemain
     const results = calculateGuessResults(guessedPlayerId, storyAuthor);
     setGuessResults(results);
-    
+
     // Update poin pemain yang berhasil menebak
     updatePlayerPoints(results);
-    
+
     // Cek apakah tebakan benar
     const isCorrect = guessedPlayerId === storyAuthor;
     console.log('Tebakan benar?', isCorrect);
     console.log('Penulis sebenarnya:', storyAuthor);
     console.log('Yang ditebak:', guessedPlayerId);
-    
+
     setCurrentStep(3);
     setGameFinished(true);
   };
