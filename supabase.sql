@@ -3,7 +3,8 @@ CREATE TABLE rooms (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   code VARCHAR(6) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
-  state VARCHAR(20) DEFAULT 'waiting',
+  phase VARCHAR(20) DEFAULT 'lobby', -- lobby, gameplay, result
+  game_phase VARCHAR(20) DEFAULT 'story_input', -- story_input, guessing, reveal
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -17,6 +18,7 @@ CREATE TABLE players (
   avatar TEXT NOT NULL,
   score INTEGER DEFAULT 0,
   is_host BOOLEAN DEFAULT FALSE,
+  is_ready BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
