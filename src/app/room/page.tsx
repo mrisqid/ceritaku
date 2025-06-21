@@ -57,12 +57,12 @@ function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: Ste
               {/* Step Circle */}
               <div
                 className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 relative z-10 ${isActive
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110'
-                    : isCompleted
-                      ? 'bg-green-500 text-white shadow-md'
-                      : isDisabled
-                        ? 'bg-gray-400/50 text-gray-300 cursor-not-allowed' // Style untuk disabled
-                        : 'bg-white/20 text-white/70 group-hover:bg-white/30'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg transform scale-110'
+                  : isCompleted
+                    ? 'bg-green-500 text-white shadow-md'
+                    : isDisabled
+                      ? 'bg-gray-400/50 text-gray-300 cursor-not-allowed' // Style untuk disabled
+                      : 'bg-white/20 text-white/70 group-hover:bg-white/30'
                   }`}
               >
                 {isCompleted ? '✅' : step.icon}
@@ -71,10 +71,10 @@ function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: Ste
               {/* Step Content */}
               <div className="mt-3 text-center">
                 <h3 className={`font-bold text-sm lg:text-base transition-colors ${isActive
-                    ? 'text-white'
-                    : isDisabled
-                      ? 'text-white/40'
-                      : 'text-white/80'
+                  ? 'text-white'
+                  : isDisabled
+                    ? 'text-white/40'
+                    : 'text-white/80'
                   }`}>
                   {step.title}
                 </h3>
@@ -253,9 +253,14 @@ function StoryInput({ onSubmit }: StoryInputProps) {
 }
 
 // Answer Component - Updated
-function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
+function Answer({
+  currentStory,
+  onSubmitAnswer
+}: {
+  currentStory: string;
+  onSubmitAnswer: () => void;
+}) {
   const [selectedPlayer, setSelectedPlayer] = useState('');
-  const [currentStory] = useState('Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam');
 
   // Mock data - daftar pemain
   const players: GuessPlayer[] = [
@@ -274,7 +279,6 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
       const selectedPlayerName = players.find(p => p.id === selectedPlayer)?.name;
       console.log('Tebakan:', selectedPlayerName);
 
-      // Move to next step after successful submission
       onSubmitAnswer();
       setSelectedPlayer('');
     }
@@ -292,11 +296,11 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Story Display */}
+        {/* Story Display - Menggunakan currentStory dari props */}
         <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-purple-500 shadow-sm">
           <h3 className="text-sm font-medium text-gray-500 mb-2">📖 Cerita:</h3>
-          <p className="text-lg text-gray-800 italic">
-            "{currentStory}"
+          <p className="text-xl text-gray-800 italic">
+            "{currentStory || 'Belum ada cerita yang di-submit'}"
           </p>
         </div>
 
@@ -313,6 +317,7 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
                 : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
             >
+
               <input
                 type="radio"
                 name="player"
@@ -368,9 +373,7 @@ function Answer({ onSubmitAnswer }: { onSubmitAnswer: () => void }) {
 }
 
 // Updated Genre Selection Component
-function GenreSelection() {
-  const [selectedGenre, setSelectedGenre] = useState<string>('');
-
+function GenreSelection({ selectedGenre, onGenreChange }: { selectedGenre: string; onGenreChange: (genre: string) => void }) {
   const genres = [
     { id: 'funny', name: 'Lucu', icon: '😂', color: 'from-yellow-400 to-orange-400', },
     { id: 'embarrassing', name: 'Memalukan', icon: '😅', color: 'from-red-400 to-pink-400', },
@@ -404,7 +407,7 @@ function GenreSelection() {
         {genres.map((genre) => (
           <button
             key={genre.id}
-            onClick={() => setSelectedGenre(selectedGenre === genre.id ? '' : genre.id)}
+            onClick={() => onGenreChange(selectedGenre === genre.id ? '' : genre.id)}
             className={`flex flex-col justify-center items-center group relative overflow-hidden rounded-lg p-3 sm:p-4 transition-all duration-300 transform hover:scale-105 ${selectedGenre === genre.id
               ? 'ring-2 ring-white shadow-lg scale-105'
               : 'hover:shadow-md'
@@ -451,7 +454,7 @@ function GenreSelection() {
               </span>
             </div>
             <button
-              onClick={() => setSelectedGenre('')}
+              onClick={() => onGenreChange('')}
               className="text-white/70 hover:text-white transition-colors p-1 flex-shrink-0"
               aria-label="Hapus pilihan genre"
             >
@@ -465,16 +468,22 @@ function GenreSelection() {
 }
 
 // Enhanced Review Component
-function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
+function Review({
+  submittedStory,
+  onPlayAgain
+}: {
+  submittedStory: string;
+  onPlayAgain: () => void;
+}) {
   const router = useRouter();
   const [showConfetti, setShowConfetti] = useState(true);
 
   // Mock data - hasil tebakan pemain
   const guessResults = [
-    { id: '1', player: 'User261', guess: 'User1926', correct: false, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 0 },
-    { id: '2', player: 'User1926', guess: 'User6993', correct: false, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 0 },
-    { id: '3', player: 'User6993', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 10 },
-    { id: '4', player: 'User8281', guess: 'User8281', correct: true, story: 'Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam', points: 10 },
+    { id: '1', player: 'User261', guess: 'User1926', correct: false, story: submittedStory, points: 0 },
+    { id: '2', player: 'User1926', guess: 'User6993', correct: false, story: submittedStory, points: 0 },
+    { id: '3', player: 'User6993', guess: 'User8281', correct: true, story: submittedStory, points: 10 },
+    { id: '4', player: 'User8281', guess: 'User8281', correct: true, story: submittedStory, points: 10 },
   ];
 
   const correctGuesses = guessResults.filter(r => r.correct).length;
@@ -564,7 +573,7 @@ function Review({ onPlayAgain }: { onPlayAgain: () => void }) {
                   </div>
                   <div className="bg-white/20 rounded-lg p-3 border-l-4 border-yellow-400">
                     <p className="text-white/90 italic leading-relaxed">
-                      "Saya pernah tidur di kelas dan tidak ada yang membangunkan saya selama 2 jam"
+                      "{submittedStory}"
                     </p>
                   </div>
 
@@ -752,7 +761,11 @@ export default function RoomPage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [roomStatus, setRoomStatus] = useState<'open' | 'in_progress' | 'full' | 'closed'>('open');
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [gameFinished, setGameFinished] = useState(false); // Track jika game sudah selesai
+  const [gameFinished, setGameFinished] = useState(false);
+
+  // Add state untuk menyimpan cerita yang di-submit
+  const [submittedStory, setSubmittedStory] = useState<string>('');
+  const [selectedGenre, setSelectedGenre] = useState<string>('');
 
   // Memoize updateTime function dengan useCallback
   const updateTime = useCallback(() => {
@@ -776,6 +789,10 @@ export default function RoomPage() {
 
   const handleSubmitStory = (story: string) => {
     console.log("Submitted story:", story);
+
+    // Simpan cerita yang di-submit
+    setSubmittedStory(story);
+
     // TODO: Implement socket.io connection to submit story
     // After story submission, move to next step
     setCurrentStep(2);
@@ -786,12 +803,15 @@ export default function RoomPage() {
     // TODO: Implement socket.io connection to submit answer
     // After answer submission, move to review step
     setCurrentStep(3);
-    setGameFinished(true); // Mark game as finished
+    setGameFinished(true);
   };
 
   const handlePlayAgain = () => {
     setCurrentStep(1);
-    setGameFinished(false); // Reset game finished status
+    setGameFinished(false);
+    // Reset story saat main lagi
+    setSubmittedStory('');
+    setSelectedGenre('');
   };
 
   const renderCurrentStep = () => {
@@ -803,20 +823,29 @@ export default function RoomPage() {
               <StoryInput onSubmit={handleSubmitStory} />
             </div>
             <div className="w-full flex-shrink-0">
-              <GenreSelection />
+              <GenreSelection
+                selectedGenre={selectedGenre}
+                onGenreChange={setSelectedGenre}
+              />
             </div>
           </div>
         );
       case 2:
         return (
           <div className="h-full custom-scrollbar">
-            <Answer onSubmitAnswer={() => setCurrentStep(3)} />
+            <Answer
+              currentStory={submittedStory} // Pass cerita yang di-submit
+              onSubmitAnswer={() => setCurrentStep(3)}
+            />
           </div>
         );
       case 3:
         return (
           <div className="h-full custom-scrollbar">
-            <Review onPlayAgain={() => setCurrentStep(1)} />
+            <Review
+              submittedStory={submittedStory} // Pass untuk review
+              onPlayAgain={handlePlayAgain}
+            />
           </div>
         );
       default:
@@ -841,9 +870,9 @@ export default function RoomPage() {
                 Room: #ABC123
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${roomStatus === 'open' ? 'bg-green-500/20 text-green-300' :
-                  roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
-                    roomStatus === 'full' ? 'bg-red-500/20 text-red-300' :
-                      'bg-gray-500/20 text-gray-300'
+                roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
+                  roomStatus === 'full' ? 'bg-red-500/20 text-red-300' :
+                    'bg-gray-500/20 text-gray-300'
                 }`}>
                 {roomStatus === 'open' && '🟢 Terbuka'}
                 {roomStatus === 'in_progress' && '🟡 Sedang Bermain'}
