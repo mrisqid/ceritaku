@@ -137,9 +137,9 @@ export interface Player {
   local_id: string;
   name: string;
   points: number;
-  avatar: string;
-  isHost?: boolean;
-  isReady?: boolean;
+  avatar?: string;
+  isHost: boolean;
+  isReady: boolean;
   isCurrentTurn?: boolean;
   isKicked?: boolean;
   isWaiting?: boolean;

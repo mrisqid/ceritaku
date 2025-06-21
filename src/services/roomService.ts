@@ -9,8 +9,13 @@ import type { Player, Story, Guess, GuessResult } from "@/types/room";
 // ============ ROOM OPERATIONS ============
 
 export const createRoom = async (
-  name: string
-): Promise<{ roomId: string; code: string } | null> => {
+  name: string,
+  creatorData?: {
+    localId: string;
+    playerName: string;
+    avatar: string;
+  }
+): Promise<{ roomId: string; code: string; player?: Player } | null> => {
   try {
     // Generate unique room code
     let code: string;
@@ -35,7 +40,7 @@ export const createRoom = async (
       throw new Error("Gagal membuat kode ruangan unik");
     }
 
-    const { data, error } = await supabase
+    const { data: room, error: roomError } = await supabase
       .from("rooms")
       .insert({
         code,
@@ -46,8 +51,39 @@ export const createRoom = async (
       .select("id, code")
       .single();
 
-    if (error) throw error;
-    return { roomId: data.id, code: data.code };
+    if (roomError) throw roomError;
+
+    // **FIX: Jika ada creatorData, langsung buat player sebagai host**
+    let player: Player | undefined;
+    if (creatorData) {
+      const { data: playerData, error: playerError } = await supabase
+        .from("players")
+        .insert({
+          room_id: room.id,
+          local_id: creatorData.localId,
+          name: creatorData.playerName,
+          avatar: creatorData.avatar,
+          is_host: true, // Creator is always host
+          is_ready: false,
+          score: 0,
+        })
+        .select("*")
+        .single();
+
+      if (playerError) {
+        // If player creation fails, delete the room
+        await supabase.from("rooms").delete().eq("id", room.id);
+        throw playerError;
+      }
+
+      player = mapPlayerFromDB(playerData);
+    }
+
+    return { 
+      roomId: room.id, 
+      code: room.code,
+      player 
+    };
   } catch (error) {
     console.error("Error creating room:", error);
     throw new Error(handleSupabaseError(error, "createRoom"));
@@ -147,7 +183,7 @@ export const joinRoom = async (
       throw new Error("Ruangan sudah dalam permainan");
     }
 
-    // Check if player already exists
+    // Check if player already exists by local_id first
     const { data: existingPlayer } = await supabase
       .from("players")
       .select("*")
@@ -156,7 +192,21 @@ export const joinRoom = async (
       .single();
 
     if (existingPlayer) {
+      // Player already exists, return existing player data
+      console.log("Player already exists, returning existing data");
       return mapPlayerFromDB(existingPlayer);
+    }
+
+    // Also check by name to prevent same name duplicates
+    const { data: existingPlayerByName } = await supabase
+      .from("players")
+      .select("*")
+      .eq("room_id", roomId)
+      .eq("name", playerData.name.trim())
+      .single();
+
+    if (existingPlayerByName) {
+      throw new Error(`Nama "${playerData.name}" sudah digunakan di ruangan ini`);
     }
 
     // Check room capacity
@@ -166,7 +216,7 @@ export const joinRoom = async (
       .eq("room_id", roomId);
 
     if (playerCount && playerCount >= 5) {
-      throw new Error("Ruangan sudah penuh");
+      throw new Error("Ruangan sudah penuh (maksimal 5 pemain)");
     }
 
     // Create new player
