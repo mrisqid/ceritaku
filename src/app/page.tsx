@@ -41,6 +41,10 @@ export default function Home() {
       const savedAvatar = localStorage.getItem("playerAvatar");
       if (savedName) setPlayerName(savedName);
       if (savedAvatar && AVATARS.includes(savedAvatar)) setAvatar(savedAvatar);
+
+      if (!localStorage.getItem("playerId")) {
+        localStorage.setItem("playerId", crypto.randomUUID());
+      }
     }
   }, []);
 
@@ -98,6 +102,7 @@ export default function Home() {
       .insert([
         {
           room_id: roomData.id,
+          local_id: localStorage.getItem("playerId") ?? "",
           name: playerName,
           avatar,
           is_host: true,
@@ -151,6 +156,7 @@ export default function Home() {
       .insert([
         {
           room_id: room.id,
+          local_id: localStorage.getItem("playerId") ?? "",
           name: playerName,
           avatar,
           is_host: false,

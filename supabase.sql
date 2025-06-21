@@ -12,6 +12,7 @@ CREATE TABLE rooms (
 CREATE TABLE players (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+  local_id UUID NOT NULL,
   name VARCHAR(255) NOT NULL,
   avatar TEXT NOT NULL,
   score INTEGER DEFAULT 0,
