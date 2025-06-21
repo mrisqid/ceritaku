@@ -495,11 +495,15 @@ function Review({
   submittedStory,
   storyAuthor,
   playerGuess,
+  players,
+  guessResults,
   onPlayAgain
 }: {
   submittedStory: string;
   storyAuthor: string;
   playerGuess: string;
+  players: Player[];
+  guessResults: any[];
   onPlayAgain: () => void;
 }) {
   const router = useRouter();
@@ -508,44 +512,16 @@ function Review({
   // Hitung apakah tebakan benar
   const isGuessCorrect = playerGuess === storyAuthor;
   
-  // Mock data untuk multiple players (dalam real app, ini dari server)
-  const guessResults = [
-    { 
-      id: '1', 
-      player: 'User261', 
-      guess: 'User1926', 
-      correct: 'User1926' === storyAuthor, // Cek dengan penulis sebenarnya
-      story: submittedStory, 
-      points: 'User1926' === storyAuthor ? 10 : 0 
-    },
-    { 
-      id: '2', 
-      player: 'User1926', 
-      guess: 'User6993', 
-      correct: 'User6993' === storyAuthor,
-      story: submittedStory, 
-      points: 'User6993' === storyAuthor ? 10 : 0 
-    },
-    { 
-      id: '3', 
-      player: 'User6993', 
-      guess: storyAuthor, // Tebakan yang benar
-      correct: true,
-      story: submittedStory, 
-      points: 10 
-    },
-    { 
-      id: '4', 
-      player: 'Current User', // Pemain saat ini
-      guess: playerGuess, 
-      correct: isGuessCorrect,
-      story: submittedStory, 
-      points: isGuessCorrect ? 10 : 0 
-    },
-  ];
-
   const correctGuesses = guessResults.filter(r => r.correct).length;
   const totalGuesses = guessResults.length;
+
+  // Cari nama penulis dari ID
+  const authorPlayer = players.find(p => p.id === storyAuthor);
+  const authorName = authorPlayer ? authorPlayer.name : storyAuthor;
+
+  // Cari nama dari player guess
+  const guessedPlayer = players.find(p => p.id === playerGuess);
+  const guessedPlayerName = guessedPlayer ? guessedPlayer.name : playerGuess;
 
   return (
     <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-100 rounded-xl shadow-lg h-full overflow-hidden flex flex-col relative">
@@ -616,7 +592,7 @@ function Review({
                 {/* Story Content */}
                 <div className="flex-grow min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="font-bold text-lg">{storyAuthor}</span>
+                    <span className="font-bold text-lg">{authorName}</span>
                     <span className="text-blue-200">menulis cerita:</span>
                   </div>
                   <div className="bg-white/20 rounded-lg p-3 border-l-4 border-yellow-400 w-full overflow-hidden">
@@ -639,8 +615,8 @@ function Review({
                     <div className="flex items-center gap-2">
                       <span className={`text-2xl ${isGuessCorrect ? '✅' : '❌'}`}></span>
                       <span className="font-medium break-words">
-                        Tebakan Anda: {playerGuess} 
-                        {isGuessCorrect ? ' (BENAR!)' : ' (SALAH)'}
+                        Tebakan Anda: {guessedPlayerName} 
+                        {isGuessCorrect ? ' (BENAR! +10 poin)' : ' (SALAH)'}
                       </span>
                     </div>
                   </div>
@@ -655,6 +631,10 @@ function Review({
                       <span>❌</span>
                       <span>{totalGuesses - correctGuesses} orang salah tebak</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <span>🏆</span>
+                      <span>{guessResults.reduce((sum, r) => sum + r.points, 0)} total poin diberikan</span>
+                    </div>
 
                     <div className="rounded-lg">
                       <EmojiReaction storyId="story1" />
@@ -665,6 +645,8 @@ function Review({
             </div>
           </div>
         </div>
+
+        {/* Updated Player Leaderboard */}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -692,7 +674,7 @@ function Review({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-yellow-600">{guessResults.reduce((sum, r) => sum + r.points, 0)}</div>
-                <div className="text-sm text-gray-600">Total Poin</div>
+                <div className="text-sm text-gray-600">Total Poin Diberikan</div>
               </div>
               <div className="text-3xl">🏆</div>
             </div>
@@ -733,6 +715,11 @@ function Review({
                       <span className="font-semibold text-gray-700 bg-white px-2 py-1 rounded-lg break-words">
                         {result.guess}
                       </span>
+                      {result.correct && (
+                        <span className="bg-emerald-500 text-white text-xs px-2 py-1 rounded-full">
+                          +{result.points} poin!
+                        </span>
+                      )}
                     </div>
                     <div className="bg-white/50 p-2 rounded overflow-hidden">
                       <p 
@@ -786,8 +773,7 @@ function Review({
             onClick={onPlayAgain}
             className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
           >
-            {/* 🔄 Main Lagi */}
-            Lobby
+            🔄 Main Lagi
           </button>
           <button
             onClick={() => router.push('/')}
@@ -831,6 +817,7 @@ export default function RoomPage() {
   const [selectedGenre, setSelectedGenre] = useState<string>('');
   const [storyAuthor, setStoryAuthor] = useState<string>(''); // ID penulis sebenarnya
   const [playerGuess, setPlayerGuess] = useState<string>(''); // ID yang ditebak pemain
+  const [guessResults, setGuessResults] = useState<any[]>([]); // Simpan hasil tebakan
 
   // Memoize updateTime function dengan useCallback
   const updateTime = useCallback(() => {
@@ -857,9 +844,90 @@ export default function RoomPage() {
     
     // Simpan cerita dan author (misalnya current user)
     setSubmittedStory(story);
-    setStoryAuthor('User8281'); // ID penulis sebenarnya (dari session/auth)
+    setStoryAuthor('1'); // ID penulis sebenarnya (gunakan ID dari mockPlayers, misal "1" untuk "devil")
     
     setCurrentStep(2);
+  };
+
+  // Fungsi untuk generate tebakan random untuk AI players
+  const generateRandomGuess = (playerId: string, authorId: string, allPlayers: Player[]) => {
+    const availableTargets = allPlayers.filter(p => p.id !== playerId);
+    if (availableTargets.length === 0) return authorId;
+    
+    // 30% chance untuk menebak benar
+    const shouldGuessCorrect = Math.random() < 0.3;
+    if (shouldGuessCorrect) {
+      return authorId;
+    } else {
+      // Pilih random dari available targets
+      const randomIndex = Math.floor(Math.random() * availableTargets.length);
+      return availableTargets[randomIndex].id;
+    }
+  };
+
+  // Fungsi untuk menghitung hasil tebakan dan update poin
+  const calculateGuessResults = (userGuess: string, authorId: string) => {
+    const currentUserId = '1'; // ID user saat ini (sesuaikan dengan session/auth)
+    const isUserGuessCorrect = userGuess === authorId;
+
+    // Generate hasil tebakan untuk semua pemain
+    const results = players.map((player) => {
+      let guess: string;
+      let correct: boolean;
+      
+      if (player.id === currentUserId) {
+        // Untuk current user, gunakan tebakan yang sebenarnya
+        guess = userGuess;
+        correct = isUserGuessCorrect;
+      } else if (player.id === authorId) {
+        // Penulis cerita tidak menebak dirinya sendiri
+        const otherPlayers = players.filter(p => p.id !== player.id);
+        if (otherPlayers.length > 0) {
+          const randomTarget = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+          guess = randomTarget.id;
+          correct = false;
+        } else {
+          guess = player.id;
+          correct = false;
+        }
+      } else {
+        // Untuk pemain lain, generate random guess
+        guess = generateRandomGuess(player.id, authorId, players);
+        correct = guess === authorId;
+      }
+
+      // Cari nama dari guess ID
+      const guessedPlayer = players.find(p => p.id === guess);
+      const guessName = guessedPlayer ? guessedPlayer.name : guess;
+
+      return {
+        id: player.id,
+        player: player.name,
+        guess: guessName,
+        guessId: guess,
+        correct: correct,
+        story: submittedStory,
+        points: correct ? 10 : 0
+      };
+    });
+
+    return results;
+  };
+
+  // Fungsi untuk update poin pemain
+  const updatePlayerPoints = (results: any[]) => {
+    setPlayers(prevPlayers => {
+      return prevPlayers.map(player => {
+        const result = results.find(r => r.id === player.id);
+        if (result && result.correct) {
+          return {
+            ...player,
+            points: player.points + result.points
+          };
+        }
+        return player;
+      });
+    });
   };
 
   const handleSubmitAnswer = (guessedPlayerId: string) => {
@@ -867,6 +935,13 @@ export default function RoomPage() {
     
     // Simpan tebakan pemain
     setPlayerGuess(guessedPlayerId);
+    
+    // Hitung hasil tebakan untuk semua pemain
+    const results = calculateGuessResults(guessedPlayerId, storyAuthor);
+    setGuessResults(results);
+    
+    // Update poin pemain yang berhasil menebak
+    updatePlayerPoints(results);
     
     // Cek apakah tebakan benar
     const isCorrect = guessedPlayerId === storyAuthor;
@@ -884,6 +959,8 @@ export default function RoomPage() {
     // Reset story saat main lagi
     setSubmittedStory('');
     setSelectedGenre('');
+    setGuessResults([]);
+    // Note: Tidak reset poin pemain, biarkan akumulatif
   };
 
   const renderCurrentStep = () => {
@@ -919,6 +996,8 @@ export default function RoomPage() {
               submittedStory={submittedStory}
               storyAuthor={storyAuthor}
               playerGuess={playerGuess}
+              players={players}
+              guessResults={guessResults}
               onPlayAgain={handlePlayAgain}
             />
           </div>
