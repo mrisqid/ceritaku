@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as roomService from "../services/roomService";
 
+// Comment out Supabase import temporarily
+// import { supabase } from "../utils/supabaseClient";
+
 const AVATARS = ["😃", "🦊", "🐼", "🐸", "🦄", "🐧", "🐯", "🐵", "🐱", "🐶"];
 
 function generateRoomCode(length = 6) {
@@ -26,7 +29,6 @@ export default function Home() {
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomCode, setNewRoomCode] = useState("");
-  const [maxPlayers, setMaxPlayers] = useState(3);
   const [shareMsg, setShareMsg] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
   const [showJoinError, setShowJoinError] = useState(false);
@@ -69,7 +71,6 @@ export default function Home() {
   const handleCreateRoom = () => {
     // Open modal and generate code
     setNewRoomName(playerName ? `Ruangan ${playerName}` : "Ruangan Baru");
-    setMaxPlayers(3);
     setNewRoomCode(generateRoomCode());
     setShowCreateRoomModal(true);
     setShareMsg("");
@@ -78,39 +79,34 @@ export default function Home() {
   const handleCreateRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateRoomLoading(true);
-
+    
     try {
-      // Create room using the improved service
-      const result = await roomService.createRoom(newRoomName);
+      // Get user data
+      const localId = localStorage.getItem("playerId") || crypto.randomUUID();
+      const playerName = localStorage.getItem("playerName") || "Anonymous";
+      const avatar = localStorage.getItem("playerAvatar") || "😊";
 
-      if (!result) {
-        throw new Error("Gagal membuat ruangan");
+      // Store localId if not exists
+      if (!localStorage.getItem("playerId")) {
+        localStorage.setItem("playerId", localId);
       }
 
-      // Join room as host
-      const player = await roomService.joinRoom(result.roomId, {
-        localId: localStorage.getItem("playerId") ?? "",
-        name: playerName,
-        avatar,
-        isHost: true,
+      // Create room with creator data
+      const result = await roomService.createRoom(newRoomName, {
+        localId,
+        playerName,
+        avatar
       });
 
-      if (!player) {
-        throw new Error("Gagal menambahkan host ke ruangan");
+      if (result) {
+        setShowCreateRoomModal(false);
+        setCreateRoomLoading(false);
+        router.push(`/room/${result.code}`);
       }
-
-      // Redirect to room
-      setShowCreateRoomModal(false);
-      setCreateRoomLoading(false);
-      router.push(`/room/${result.code}`);
-    } catch (error) {
+    } catch (error: any) {
       setCreateRoomLoading(false);
       setShowCreateRoomModal(false);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Gagal membuat ruangan. Silakan coba lagi.";
-      setJoinErrorMsg(errorMessage);
+      setJoinErrorMsg(error.message || "Gagal membuat ruangan. Silakan coba lagi.");
       setShowJoinError(true);
     }
   };
@@ -129,37 +125,18 @@ export default function Home() {
   const handleJoinRoom = async () => {
     if (!roomCode.trim()) return;
     setJoinLoading(true);
-
+    
     try {
-      // Check if room exists using the improved service
-      const room = await roomService.getRoomByCode(roomCode.trim());
-
-      if (!room) {
-        throw new Error("Kode ruangan tidak ditemukan.");
+      // Simple validation and redirect
+      if (roomCode.trim().length >= 4) {
+        setJoinLoading(false);
+        router.push(`/room/${roomCode.trim()}`);
+      } else {
+        throw new Error("Kode ruangan harus minimal 4 karakter");
       }
-
-      // Join room
-      const player = await roomService.joinRoom(room.id, {
-        localId: localStorage.getItem("playerId") ?? "",
-        name: playerName,
-        avatar,
-        isHost: false,
-      });
-
-      if (!player) {
-        throw new Error("Gagal join ke ruangan. Coba lagi.");
-      }
-
-      // Redirect to room
+    } catch (error: any) {
       setJoinLoading(false);
-      router.push(`/room/${roomCode.trim()}`);
-    } catch (error) {
-      setJoinLoading(false);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Gagal join ke ruangan. Coba lagi.";
-      setJoinErrorMsg(errorMessage);
+      setJoinErrorMsg(error.message || "Kode ruangan tidak valid.");
       setShowJoinError(true);
     }
   };
@@ -367,18 +344,7 @@ export default function Home() {
                     maxLength={30}
                     required
                   />
-                  <label className="text-blue-700 font-semibold text-sm">
-                    Jumlah Maksimal Pemain
-                  </label>
-                  <select
-                    value={maxPlayers}
-                    onChange={(e) => setMaxPlayers(Number(e.target.value))}
-                    className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
-                  >
-                    <option value={3}>3 Orang</option>
-                    <option value={4}>4 Orang</option>
-                    <option value={5}>5 Orang</option>
-                  </select>
+        
                   <label className="text-blue-700 font-semibold text-sm">
                     Kode Ruangan
                   </label>
