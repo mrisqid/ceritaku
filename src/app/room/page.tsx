@@ -390,7 +390,7 @@ function Answer({
       )}
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 p-6">
         {/* Story Display */}
         <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-purple-500 shadow-sm w-full">
           <h3 className="text-sm font-medium text-gray-500 mb-2">📖 Cerita:</h3>
@@ -411,56 +411,71 @@ function Answer({
         </div>
 
         {/* Player Options */}
-        <div className="space-y-3">
+        <div className="mb-6">
           <h4 className="text-md font-semibold text-gray-700 mb-3">
             Pilih siapa yang menulis cerita ini:
           </h4>
-          {availablePlayers.length > 0 ? (
-            availablePlayers.map((player) => (
-              <label
-                key={player.id}
-                className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                  isTimeUp 
-                    ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-100'
-                    : selectedPlayer === player.id
-                      ? 'border-purple-500 bg-purple-50 shadow-md'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="player"
-                  value={player.id}
-                  checked={selectedPlayer === player.id}
-                  onChange={(e) => !isTimeUp && setSelectedPlayer(e.target.value)}
-                  className="sr-only"
-                  disabled={isTimeUp}
-                />
-                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                  selectedPlayer === player.id
-                    ? 'border-purple-500 bg-purple-500'
-                    : 'border-gray-300'
-                }`}>
-                  {selectedPlayer === player.id && (
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                  )}
-                </div>
+          
+          {/* Scrollable Player List */}
+          <div className="max-h-64 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+            {availablePlayers.length > 0 ? (
+              availablePlayers.map((player) => (
+                <label
+                  key={player.id}
+                  className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                    isTimeUp 
+                      ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-100'
+                      : selectedPlayer === player.id
+                        ? 'border-purple-500 bg-purple-50 shadow-md'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="player"
+                    value={player.id}
+                    checked={selectedPlayer === player.id}
+                    onChange={(e) => !isTimeUp && setSelectedPlayer(e.target.value)}
+                    className="sr-only"
+                    disabled={isTimeUp}
+                  />
+                  <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                    selectedPlayer === player.id
+                      ? 'border-purple-500 bg-purple-500'
+                      : 'border-gray-300'
+                  }`}>
+                    {selectedPlayer === player.id && (
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    )}
+                  </div>
 
-                {/* Player Avatar */}
-                <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
-                  👤
-                </div>
+                  {/* Player Avatar */}
+                  <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
+                    👤
+                  </div>
 
-                <span className={`font-medium ${
-                  selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
-                }`}>
-                  {player.name}
-                </span>
-              </label>
-            ))
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>Tidak ada pemain lain untuk ditebak</p>
+                  <span className={`font-medium ${
+                    selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
+                  }`}>
+                    {player.name}
+                  </span>
+                </label>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>Tidak ada pemain lain untuk ditebak</p>
+              </div>
+            )}
+          </div>
+
+          {/* Scroll Indicator */}
+          {availablePlayers.length > 4 && (
+            <div className="text-center mt-2">
+              <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                <span>⬇️</span>
+                <span>Scroll untuk melihat pemain lainnya</span>
+                <span>⬇️</span>
+              </p>
             </div>
           )}
         </div>
@@ -480,7 +495,8 @@ function Answer({
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {isTimeUp
+          <div>
+       {isTimeUp
             ? '⏰ Waktu Habis - Tidak Ada Tebakan'
             : availablePlayers.length === 0
               ? '😔 Tidak ada pemain untuk ditebak'
@@ -488,6 +504,8 @@ function Answer({
                 ? `🎯 Kirim Tebakan: ${availablePlayers.find(p => p.id === selectedPlayer)?.name}`
                 : '🤔 Pilih pemain terlebih dahulu'
           }
+          </div>
+   
         </button>
       </div>
     </div>
@@ -562,7 +580,7 @@ function Review({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 p-6 overflow-y-auto">
         {/* Story Author Reveal Section */}
         <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg relative overflow-hidden">
           {/* Background decoration */}
