@@ -168,7 +168,6 @@ function PlayerList({ players }: PlayerListProps) {
                       ❌
                     </span>
                   </button>
-
                 </div>
               )}
               {player.isHost && (
@@ -195,11 +194,16 @@ function PlayerList({ players }: PlayerListProps) {
             </div>
           ))}
         </div>
-        <div className="p-2 flex justify-center items-center">
-          <button onClick={() => handleReady()} className="bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all border-2 border-blue-200 mt-2 w-full">
-            Ready
-          </button>
-        </div>
+      </div>
+
+      {/* Ready Button - Fixed at bottom */}
+      <div className="flex-shrink-0 p-4 border-t border-gray-200">
+        <button 
+          onClick={() => handleReady()} 
+          className="bg-blue-400 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all border-2 border-blue-200 w-full"
+        >
+          Ready
+        </button>
       </div>
     </div>
   );
@@ -255,27 +259,28 @@ function StoryInput({ onSubmit }: StoryInputProps) {
 // Answer Component - Updated
 function Answer({
   currentStory,
+  players,
   onSubmitAnswer
 }: {
   currentStory: string;
+  players: Player[];
   onSubmitAnswer: (guessedPlayerId: string) => void;
 }) {
   const [selectedPlayer, setSelectedPlayer] = useState('');
 
-  // Mock data - daftar pemain (exclude penulis sebenarnya dari pilihan)
-  const players: GuessPlayer[] = [
-    { id: 'User261', name: 'User261' },
-    { id: 'User1926', name: 'User1926' },
-    { id: 'User6993', name: 'User6993' },
-    { id: 'User8281', name: 'User8281' }, // Penulis sebenarnya
-    { id: 'TestTon', name: 'TestTon' },
-    { id: 'Aripp', name: 'Aripp' },
-  ];
+  // Convert Player[] ke GuessPlayer[] format dan exclude current user
+  const currentUserId = 'User8281'; // ID user saat ini (dari session/auth)
+  const availablePlayers: GuessPlayer[] = players
+    .filter(player => player.id !== currentUserId) // Exclude current user
+    .map(player => ({
+      id: player.id,
+      name: player.name
+    }));
 
   const handleAnswerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedPlayer) {
-      const selectedPlayerName = players.find(p => p.id === selectedPlayer)?.name;
+      const selectedPlayerName = availablePlayers.find(p => p.id === selectedPlayer)?.name;
       console.log('Tebakan:', selectedPlayerName);
 
       // Kirim ID yang ditebak ke parent
@@ -296,7 +301,7 @@ function Answer({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Story Display - Menggunakan currentStory dari props */}
+        {/* Story Display */}
         <div className="mb-6 p-4 bg-white rounded-lg border-l-4 border-purple-500 shadow-sm w-full">
           <h3 className="text-sm font-medium text-gray-500 mb-2">📖 Cerita:</h3>
           <div className="w-full overflow-hidden bg-gray-50 rounded-lg p-3">
@@ -320,43 +325,48 @@ function Answer({
           <h4 className="text-md font-semibold text-gray-700 mb-3">
             Pilih siapa yang menulis cerita ini:
           </h4>
-          {players.map((player) => (
-            <label
-              key={player.id}
-              className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${selectedPlayer === player.id
-                ? 'border-purple-500 bg-purple-50 shadow-md'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-            >
+          {availablePlayers.length > 0 ? (
+            availablePlayers.map((player) => (
+              <label
+                key={player.id}
+                className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${selectedPlayer === player.id
+                  ? 'border-purple-500 bg-purple-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+              >
+                <input
+                  type="radio"
+                  name="player"
+                  value={player.id}
+                  checked={selectedPlayer === player.id}
+                  onChange={(e) => setSelectedPlayer(e.target.value)}
+                  className="sr-only"
+                />
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selectedPlayer === player.id
+                  ? 'border-purple-500 bg-purple-500'
+                  : 'border-gray-300'
+                  }`}>
+                  {selectedPlayer === player.id && (
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </div>
 
-              <input
-                type="radio"
-                name="player"
-                value={player.id}
-                checked={selectedPlayer === player.id}
-                onChange={(e) => setSelectedPlayer(e.target.value)}
-                className="sr-only"
-              />
-              <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selectedPlayer === player.id
-                ? 'border-purple-500 bg-purple-500'
-                : 'border-gray-300'
-                }`}>
-                {selectedPlayer === player.id && (
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                )}
-              </div>
+                {/* Player Avatar */}
+                <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
+                  👤
+                </div>
 
-              {/* Player Avatar */}
-              <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center mr-3">
-                👤
-              </div>
-
-              <span className={`font-medium ${selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
-                }`}>
-                {player.name}
-              </span>
-            </label>
-          ))}
+                <span className={`font-medium ${selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
+                  }`}>
+                  {player.name}
+                </span>
+              </label>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>Tidak ada pemain lain untuk ditebak</p>
+            </div>
+          )}
         </div>
 
         {/* Extra space for content below sticky button */}
@@ -367,15 +377,17 @@ function Answer({
       <div className="flex-shrink-0 sticky bottom-0 bg-white border-t border-gray-200 p-4">
         <button
           onClick={handleAnswerSubmit}
-          disabled={!selectedPlayer}
-          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${selectedPlayer
+          disabled={!selectedPlayer || availablePlayers.length === 0}
+          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${selectedPlayer && availablePlayers.length > 0
             ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-xl hover:scale-105'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
         >
-          {selectedPlayer
-            ? `🎯 Kirim Tebakan: ${players.find(p => p.id === selectedPlayer)?.name}`
-            : '🤔 Pilih pemain terlebih dahulu'
+          {availablePlayers.length === 0 
+            ? '😔 Tidak ada pemain untuk ditebak'
+            : selectedPlayer
+              ? `🎯 Kirim Tebakan: ${availablePlayers.find(p => p.id === selectedPlayer)?.name}`
+              : '🤔 Pilih pemain terlebih dahulu'
           }
         </button>
       </div>
@@ -791,15 +803,11 @@ function Review({
 
 // ============ MAIN PAGE COMPONENT ============
 const mockPlayers: Player[] = [
-  { id: "1", name: "devil", points: 64, isCurrentTurn: true },
-  { id: "2", name: "JEN", points: 60, isKicked: true },
-  { id: "3", name: "Lunie", points: 58 },
-  { id: "4", name: "ObitoUvhiha", points: 9 },
-  { id: "5", name: "TestTon", points: 8 },
-  { id: "6", name: "Aripp", points: 0 },
-  { id: "7", name: "Nagi seishiro", points: 0 },
-  { id: "8", name: "Player 8", points: 0 },
-  { id: "9", name: "Player 9", points: 0 },
+  { id: "1", name: "devil", points: 0, isCurrentTurn: true },
+  { id: "2", name: "JEN", points: 0,},
+  { id: "3", name: "Lunie", points: 0 },
+  { id: "4", name: "ObitoUvhiha", points: 0 },
+  { id: "5", name: "TestTon", points: 0 },
 ];
 
 // Toast notification untuk perubahan status
@@ -899,6 +907,7 @@ export default function RoomPage() {
           <div className="h-full custom-scrollbar">
             <Answer
               currentStory={submittedStory}
+              players={players}
               onSubmitAnswer={handleSubmitAnswer}
             />
           </div>
