@@ -1,14 +1,13 @@
 // ============ INTERFACES ============
 export interface Player {
-  isWaiting?: boolean;
-  isReady?: boolean;
-  isHost?: boolean;
-  isKicked?: boolean;
   id: string;
   name: string;
-  points?: number;
+  points: number;
+  isHost?: boolean;
+  isReady?: boolean;
   isCurrentTurn?: boolean;
-  hasSubmitted?: boolean;
+  isKicked?: boolean;
+  isWaiting?: boolean;
 }
 
 export interface Story {

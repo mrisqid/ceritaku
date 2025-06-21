@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 // Import helper function
 import { getCurrentTime12Hour } from "@/helper/timeUtils";
 import EmojiReaction from "@/components/ui/EmojiReaction";
+import GenreSelection from "@/components/ui/GenreSelection";
+
 
 // ============ COMPONENTS ============
 
@@ -103,22 +105,22 @@ function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: Ste
 }
 
 // PlayerList Component
-function PlayerList({ players }: PlayerListProps) {
+function PlayerList({ players, onReady, currentUserId, gameStarted }: PlayerListProps & {
+  onReady: () => void;
+  currentUserId: string;
+  gameStarted: boolean;
+}) {
   const router = useRouter();
+
   function handleKickPlayer(id: string): void {
     throw new Error("Function not implemented.");
   }
 
-  function handleReady(): void {
-    throw new Error("Function not implemented.");
+  function handleLeaveRoom(): void {
+    router.push('/');
   }
 
-  function handleLeaveRoom(): void {
-    // Fungsi untuk keluar dari room
-      // Logic untuk keluar room
-      router.push('/'); // atau menggunakan router
-   
-  }
+  const currentUser = players.find(p => p.id === currentUserId);
 
   return (
     <div className="bg-white rounded-xl shadow-lg h-full flex flex-col">
@@ -150,9 +152,14 @@ function PlayerList({ players }: PlayerListProps) {
                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-yellow-200 rounded-full flex items-center justify-center">
                   😊
                 </div>
-                {player.isCurrentTurn && (
+                {player.isCurrentTurn && gameStarted && (
                   <div className="absolute -top-1 -left-1 w-4 h-4 lg:w-5 lg:h-5 bg-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs">✏️</span>
+                  </div>
+                )}
+                {player.isReady && !gameStarted && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 lg:w-5 lg:h-5 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">✓</span>
                   </div>
                 )}
               </div>
@@ -163,47 +170,38 @@ function PlayerList({ players }: PlayerListProps) {
                   <span className="font-medium text-gray-800 truncate text-sm lg:text-base">
                     {player.name}
                   </span>
+
                 </div>
+
                 <div className="text-xs lg:text-sm text-gray-500">
                   {player.points} pts
                 </div>
               </div>
 
               {/* Status Badge */}
-              {player.isCurrentTurn && (
-                <div className="flex-shrink-0">
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                    Turn
-                  </span>
-                </div>
-              )}
-              {player.isKicked && (
-                <div className="flex-shrink-0">
-                  <button onClick={() => handleKickPlayer(player.id)} className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                    <span className="bg-red-100 text-red-800 text-xs px-0 py-1 rounded-full">
-                      ❌
-                    </span>
-                  </button>
-                </div>
+              {player.id === currentUserId && (
+                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  You
+                </span>
               )}
               {player.isHost && (
                 <div className="flex-shrink-0">
-                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
                     Host
                   </span>
                 </div>
               )}
-              {player.isWaiting && (
-                <div className="flex-shrink-0">
-                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
-                    Waiting
-                  </span>
-                </div>
-              )}
-              {player.isReady && (
+              {player.isReady && !gameStarted && (
                 <div className="flex-shrink-0">
                   <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
                     Ready
+                  </span>
+                </div>
+              )}
+              {player.isCurrentTurn && gameStarted && (
+                <div className="flex-shrink-0">
+                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    Turn
                   </span>
                 </div>
               )}
@@ -212,15 +210,20 @@ function PlayerList({ players }: PlayerListProps) {
         </div>
       </div>
 
-      {/* Ready Button - Fixed at bottom */}
-      <div className="flex-shrink-0 p-4 border-t border-gray-200">
-        <button
-          onClick={() => handleReady()}
-          className="bg-blue-400 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all border-2 border-blue-200 w-full"
-        >
-          Ready
-        </button>
-      </div>
+      {/* Ready Button - Only show in lobby */}
+      {!gameStarted && (
+        <div className="flex-shrink-0 p-4 border-t border-gray-200">
+          <button
+            onClick={onReady}
+            className={`w-full font-bold py-3 px-6 rounded-lg shadow-md transition-all border-2 ${currentUser?.isReady
+                ? 'bg-gray-400 hover:bg-gray-500 text-white border-gray-300'
+                : 'bg-green-500 hover:bg-green-600 text-white border-green-300'
+              }`}
+          >
+            {currentUser?.isReady ? '❌ Batal Siap' : '✅ Ready'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -411,100 +414,6 @@ function Answer({
   );
 }
 
-// Updated Genre Selection Component
-function GenreSelection({ selectedGenre, onGenreChange }: { selectedGenre: string; onGenreChange: (genre: string) => void }) {
-  const genres = [
-    { id: 'funny', name: 'Lucu', icon: '😂', color: 'from-yellow-400 to-orange-400', },
-    { id: 'embarrassing', name: 'Memalukan', icon: '😅', color: 'from-red-400 to-pink-400', },
-    { id: 'scary', name: 'Menyeramkan', icon: '👻', color: 'from-purple-400 to-indigo-400', },
-    { id: 'romantic', name: 'Romantis', icon: '💕', color: 'from-pink-400 to-rose-400', },
-    { id: 'adventure', name: 'Petualangan', icon: '🗺️', color: 'from-blue-400 to-cyan-400', },
-  ];
-
-  return (
-    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 lg:p-6 border border-white/20 shadow-lg w-full max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-lg sm:text-xl">🎭</span>
-          <h3 className="text-base sm:text-lg font-bold text-white">
-            Pilih Genre Cerita
-          </h3>
-        </div>
-        <span className="text-xs sm:text-sm font-normal text-white/70 sm:ml-2">
-          (Opsional)
-        </span>
-      </div>
-
-      {/* Description */}
-      <p className="text-white/80 text-xs sm:text-sm mb-4 leading-relaxed">
-        Beri petunjuk kepada pemain lain tentang jenis cerita yang akan kamu tulis
-      </p>
-
-      {/* Genre Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-        {genres.map((genre) => (
-          <button
-            key={genre.id}
-            onClick={() => onGenreChange(selectedGenre === genre.id ? '' : genre.id)}
-            className={`flex flex-col justify-center items-center group relative overflow-hidden rounded-lg p-3 sm:p-4 transition-all duration-300 transform hover:scale-105 ${selectedGenre === genre.id
-              ? 'ring-2 ring-white shadow-lg scale-105'
-              : 'hover:shadow-md'
-              }`}
-          >
-            {/* Gradient Background */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${genre.color} opacity-80 group-hover:opacity-90 transition-opacity`} />
-
-            {/* Content */}
-            <div className="relative z-10 text-center">
-              <div className="text-xl sm:text-2xl mb-1 sm:mb-2">{genre.icon}</div>
-              <div className="font-bold text-white text-xs sm:text-sm mb-1">{genre.name}</div>
-              {/* Shorter description for mobile */}
-              <div className="text-white/90 text-xs leading-tight block sm:hidden">
-                {genre.name === 'Lucu' && 'Yang menghibur'}
-                {genre.name === 'Memalukan' && 'Momen awkward'}
-                {genre.name === 'Menyeramkan' && 'Bikin merinding'}
-                {genre.name === 'Romantis' && 'Kisah hati'}
-                {genre.name === 'Petualangan' && 'Seru & menantang'}
-              </div>
-            </div>
-
-            {/* Selected Indicator */}
-            {selectedGenre === genre.id && (
-              <div className="absolute top-1 right-1 sm:top-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full flex items-center justify-center">
-                <span className="text-green-600 text-xs sm:text-sm font-bold">✓</span>
-              </div>
-            )}
-
-            {/* Hover Glow Effect */}
-            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
-          </button>
-        ))}
-      </div>
-
-      {/* Selected Genre Display */}
-      {selectedGenre && (
-        <div className="mt-4 p-3 bg-white/20 rounded-lg">
-          <div className="flex items-center justify-between gap-2 text-white">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-sm sm:text-base">{genres.find(g => g.id === selectedGenre)?.icon}</span>
-              <span className="font-medium text-sm sm:text-base truncate">
-                Genre: {genres.find(g => g.id === selectedGenre)?.name}
-              </span>
-            </div>
-            <button
-              onClick={() => onGenreChange('')}
-              className="text-white/70 hover:text-white transition-colors p-1 flex-shrink-0"
-              aria-label="Hapus pilihan genre"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Enhanced Review Component
 function Review({
@@ -803,13 +712,336 @@ function Review({
   );
 }
 
+// Lobby Component - Updated with Countdown
+function Lobby({
+  players,
+  onReady,
+  onStartGame,
+  onCancelCountdown,
+  currentUserId,
+  isHost,
+  waitingForPlayers,
+  countdown
+}: {
+  players: Player[];
+  onReady: () => void;
+  onStartGame: () => void;
+  onCancelCountdown: () => void;
+  currentUserId: string;
+  isHost: boolean;
+  waitingForPlayers: boolean;
+  countdown: number | null;
+}) {
+  const currentUser = players.find(p => p.id === currentUserId);
+  const readyPlayers = players.filter(p => p.isReady);
+  const allPlayersReady = players.length >= 2 && readyPlayers.length === players.length;
+  const minPlayersReached = players.length >= 2;
+
+  return (
+    <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-6 px-6 flex-shrink-0">
+        <h2 className="text-2xl font-bold flex items-center gap-3 mb-2">
+          🎮 Lobby Game
+        </h2>
+        <p className="text-blue-100 text-sm">
+          {countdown !== null
+            ? `🚀 Game dimulai dalam ${countdown} detik...`
+            : waitingForPlayers
+              ? "🚀 Memulai permainan..."
+              : "Tunggu semua pemain siap untuk memulai permainan"
+          }
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Show countdown animation when counting down */}
+        {countdown !== null && (
+          <div className="text-center p-8 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-lg mb-6 border border-orange-400/30">
+            <div className="relative">
+              {/* Countdown Circle */}
+              <div className="w-32 h-32 mx-auto mb-4 relative">
+                <div className="w-full h-full rounded-full border-8 border-orange-200/30"></div>
+                <div
+                  className="absolute top-0 left-0 w-full h-full rounded-full border-8 border-orange-400 transition-all duration-1000 ease-linear"
+                  style={{
+                    clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.cos(2 * Math.PI * (5 - countdown) / 5 - Math.PI / 2)}% ${50 + 50 * Math.sin(2 * Math.PI * (5 - countdown) / 5 - Math.PI / 2)}%, 50% 50%)`
+                  }}
+                ></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-6xl font-bold text-white animate-pulse">
+                    {countdown}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-2">Game Dimulai Dalam</h3>
+            <p className="text-white/80 mb-4">Semua pemain sudah siap! Bersiaplah untuk bermain...</p>
+
+            {/* Cancel button */}
+            {/* <button
+              onClick={onCancelCountdown}
+              className="bg-red-500/80 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200"
+            >
+              ❌ Batalkan
+            </button> */}
+          </div>
+        )}
+
+        {/* Show starting game animation when waiting (after countdown) */}
+        {waitingForPlayers && countdown === null && (
+          <div className="text-center p-8 bg-green-500/20 rounded-lg mb-6">
+            <div className="text-6xl mb-4 animate-bounce">🚀</div>
+            <h3 className="text-2xl font-bold text-white mb-2">Memulai Permainan!</h3>
+            <p className="text-white/80">Game sedang dimuat...</p>
+
+            {/* Loading animation */}
+            <div className="mt-4 flex justify-center">
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-white rounded-full animate-bounce"></div>
+                <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Game Rules */}
+        {!waitingForPlayers && countdown === null && (
+          <div className="mb-6 p-4 bg-white/20 rounded-lg">
+            <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+              📋 Aturan Permainan
+            </h3>
+            <ul className="text-white/90 text-sm space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-yellow-300">1.</span>
+                <span>Setiap pemain menulis cerita pendek tentang diri mereka</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-yellow-300">2.</span>
+                <span>Pemain lain harus menebak siapa penulis cerita tersebut</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-yellow-300">3.</span>
+                <span>Setiap tebakan benar mendapat 10 poin</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-yellow-300">4.</span>
+                <span>Pemain dengan poin tertinggi adalah pemenang</span>
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* Ready Status */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              ✅ Status Kesiapan
+            </h3>
+            <div className="text-white/80 text-sm">
+              {readyPlayers.length}/{players.length} siap
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-4 bg-white/20 rounded-full h-3 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-500 ease-out ${allPlayersReady
+                  ? countdown !== null
+                    ? 'bg-gradient-to-r from-orange-400 to-red-500'
+                    : 'bg-gradient-to-r from-green-400 to-emerald-500'
+                  : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                }`}
+              style={{ width: `${(readyPlayers.length / Math.max(players.length, 1)) * 100}%` }}
+            />
+          </div>
+
+          {/* Player Ready List */}
+          <div className="space-y-2">
+            {players.map((player) => (
+              <div
+                key={player.id}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all ${player.isReady
+                    ? countdown !== null
+                      ? 'bg-orange-500/20 border border-orange-400/30'
+                      : 'bg-green-500/20 border border-green-400/30'
+                    : 'bg-white/10 border border-white/20'
+                  }`}
+              >
+                {/* Avatar */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center">
+                    😊
+                  </div>
+                  {player.isReady && (
+                    <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${countdown !== null ? 'bg-orange-500' : 'bg-green-500'
+                      }`}>
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Player Info */}
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-white">
+                      {player.name}
+                    </span>
+                    {player.isHost && (
+                      <span className="bg-yellow-500 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">
+                        Host
+                      </span>
+                    )}
+                    {player.id === currentUserId && (
+                      <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                        You
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-white/70">
+                    {player.points} poin
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex-shrink-0">
+                  {countdown !== null ? (
+                    <div className="flex items-center gap-1 text-orange-300">
+                      <span className="text-sm animate-pulse">⏰</span>
+                      <span className="text-sm font-medium">Starting in {countdown}s</span>
+                    </div>
+                  ) : waitingForPlayers ? (
+                    <div className="flex items-center gap-1 text-blue-300">
+                      <span className="text-sm animate-pulse">🚀</span>
+                      <span className="text-sm font-medium">Loading...</span>
+                    </div>
+                  ) : player.isReady ? (
+                    <div className="flex items-center gap-1 text-green-300">
+                      <span className="text-sm">✅</span>
+                      <span className="text-sm font-medium">Siap</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-yellow-300">
+                      <span className="text-sm">⏳</span>
+                      <span className="text-sm font-medium">Menunggu</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Game Requirements */}
+        {!waitingForPlayers && countdown === null && (
+          <div className="mb-6 p-4 bg-white/10 rounded-lg">
+            <h4 className="text-white font-medium mb-2">Syarat Memulai Game:</h4>
+            <div className="space-y-2 text-sm">
+              <div className={`flex items-center gap-2 ${minPlayersReached ? 'text-green-300' : 'text-red-300'}`}>
+                <span>{minPlayersReached ? '✅' : '❌'}</span>
+                <span>Minimal 5 pemain ({players.length}/5)</span>
+              </div>
+              <div className={`flex items-center gap-2 ${allPlayersReady ? 'text-green-300' : 'text-yellow-300'}`}>
+                <span>{allPlayersReady ? '✅' : '⏳'}</span>
+                <span>Semua pemain siap ({readyPlayers.length}/{players.length})</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Waiting Message */}
+        {!allPlayersReady && !waitingForPlayers && countdown === null && (
+          <div className="text-center p-6 bg-white/10 rounded-lg">
+            <div className="text-4xl mb-3">⏳</div>
+            <h4 className="text-white font-bold mb-2">Menunggu Pemain Lain</h4>
+            <p className="text-white/80 text-sm">
+              {!minPlayersReached
+                ? `Perlu ${2 - players.length} pemain lagi untuk memulai`
+                : `Menunggu ${players.length - readyPlayers.length} pemain lagi untuk siap`
+              }
+            </p>
+          </div>
+        )}
+
+        {/* Auto Start Message */}
+        {allPlayersReady && !waitingForPlayers && countdown === null && (
+          <div className="text-center p-6 bg-green-500/20 rounded-lg border border-green-400/30">
+            <div className="text-4xl mb-3">🎉</div>
+            <h4 className="text-white font-bold mb-2">Semua Pemain Siap!</h4>
+            <p className="text-white/80 text-sm">
+              Countdown akan dimulai otomatis...
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex-shrink-0 p-6 border-t border-white/20">
+        <div className="space-y-3">
+          {/* Ready Button */}
+          {!waitingForPlayers && countdown === null && (
+            <>
+              {!currentUser?.isReady ? (
+                <button
+                  onClick={onReady}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                >
+                  ✅ Siap Bermain
+                </button>
+              ) : (
+                <button
+                  onClick={onReady}
+                  className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                >
+                  ❌ Batal Siap
+                </button>
+              )}
+
+              {/* Manual Start Game Button (Only for Host) */}
+              {isHost && allPlayersReady && (
+                <button
+                  onClick={onStartGame}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                >
+                  🚀 Mulai Sekarang
+                </button>
+              )}
+            </>
+          )}
+
+          {/* Countdown Message */}
+          {countdown !== null && (
+            <div className="text-center p-3 bg-orange-500/20 rounded-lg border border-orange-400/30">
+              <p className="text-orange-200 text-sm font-medium">
+                ⏰ Game dimulai dalam {countdown} detik...
+              </p>
+            </div>
+          )}
+
+          {/* Starting Game Message */}
+          {waitingForPlayers && countdown === null && (
+            <div className="text-center p-3 bg-green-500/20 rounded-lg border border-green-400/30">
+              <p className="text-green-200 text-sm font-medium">
+                🚀 Memulai permainan...
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============ MAIN PAGE COMPONENT ============
 const mockPlayers: Player[] = [
-  { id: "1", name: "devil", points: 0, isCurrentTurn: true },
-  { id: "2", name: "JEN", points: 0, },
-  { id: "3", name: "Lunie", points: 0 },
-  { id: "4", name: "ObitoUvhiha", points: 0 },
-  { id: "5", name: "TestTon", points: 0 },
+  { id: "1", name: "Anton", points: 0, isHost: true, isReady: false },
+  { id: "2", name: "Cena", points: 0, isReady: true },
+  { id: "3", name: "Lunie", points: 0, isReady: true },
+  { id: "4", name: "Obito", points: 0, isReady: true },
+  { id: "5", name: "Teston", points: 0, isReady: true },
 ];
 
 // Toast notification untuk perubahan status
@@ -823,33 +1055,101 @@ const statusMessages = {
 
 export default function RoomPage() {
   const [players, setPlayers] = useState(mockPlayers);
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [roomStatus, setRoomStatus] = useState<'open' | 'in_progress' | 'full' | 'closed'>('open');
+  const [currentStep, setCurrentStep] = useState<number>(0); // 0 = Lobby, 1 = Game Started
+  const [roomStatus, setRoomStatus] = useState<'lobby' | 'in_progress' | 'finished'>('lobby');
   const [currentTime, setCurrentTime] = useState<string>('');
   const [gameFinished, setGameFinished] = useState(false);
+  const [waitingForPlayers, setWaitingForPlayers] = useState(false); // New state for waiting
+  const [countdown, setCountdown] = useState<number | null>(null); // New state for countdown
 
   // State untuk menyimpan cerita dan penulis
   const [submittedStory, setSubmittedStory] = useState<string>('');
   const [selectedGenre, setSelectedGenre] = useState<string>('');
-  const [storyAuthor, setStoryAuthor] = useState<string>(''); // ID penulis sebenarnya
-  const [playerGuess, setPlayerGuess] = useState<string>(''); // ID yang ditebak pemain
-  const [guessResults, setGuessResults] = useState<any[]>([]); // Simpan hasil tebakan
+  const [storyAuthor, setStoryAuthor] = useState<string>('');
+  const [playerGuess, setPlayerGuess] = useState<string>('');
+  const [guessResults, setGuessResults] = useState<any[]>([]);
+
+  // Game settings
+  const currentUserId = '1'; // ID user saat ini (dari session/auth)
+  const isHost = players.find(p => p.id === currentUserId)?.isHost || false;
+
+  // Check if all players are ready
+  const readyPlayers = players.filter(p => p.isReady);
+  const allPlayersReady = players.length >= 2 && readyPlayers.length === players.length;
+  const minPlayersReached = players.length >= 2;
 
   // Memoize updateTime function dengan useCallback
   const updateTime = useCallback(() => {
     setCurrentTime(getCurrentTime12Hour());
-  }, []); // Empty dependency array karena tidak bergantung pada state/props lain
+  }, []);
 
   // Real-time clock effect
   useEffect(() => {
-    updateTime(); // Set initial time
-    const interval = setInterval(updateTime, 1000); // Update every second
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [updateTime]);
 
-    return () => clearInterval(interval); // Cleanup
-  }, [updateTime]); // Sekarang dependency array berisi updateTime yang sudah di-memoize
+  // Auto start countdown when all players are ready
+  useEffect(() => {
+    if (allPlayersReady && minPlayersReached && currentStep === 0 && countdown === null) {
+      setWaitingForPlayers(true);
+      setCountdown(5); // Start 5 second countdown
+    } else if (!allPlayersReady && countdown !== null) {
+      // Reset countdown if someone becomes unready
+      setCountdown(null);
+      setWaitingForPlayers(false);
+    }
+  }, [allPlayersReady, minPlayersReached, currentStep, countdown]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      // Start game when countdown reaches 0
+      setCurrentStep(1);
+      setRoomStatus('in_progress');
+      setWaitingForPlayers(false);
+      setCountdown(null);
+    }
+  }, [countdown]);
+
+  const handleReady = () => {
+    setPlayers(prevPlayers =>
+      prevPlayers.map(player =>
+        player.id === currentUserId
+          ? { ...player, isReady: !player.isReady }
+          : player
+      )
+    );
+  };
+
+  const handleStartGame = () => {
+    if (allPlayersReady && minPlayersReached) {
+      // Cancel countdown and start immediately
+      setCountdown(null);
+      setWaitingForPlayers(true);
+
+      setTimeout(() => {
+        setCurrentStep(1);
+        setRoomStatus('in_progress');
+        setWaitingForPlayers(false);
+      }, 500);
+    }
+  };
+
+  const handleCancelCountdown = () => {
+    // Allow players to cancel the countdown
+    setCountdown(null);
+    setWaitingForPlayers(false);
+  };
 
   const handleStepChange = (step: number) => {
-    // Hanya bisa change step jika game sudah selesai atau step yang dipilih <= currentStep
     if (gameFinished || step <= currentStep) {
       setCurrentStep(step);
     }
@@ -857,11 +1157,8 @@ export default function RoomPage() {
 
   const handleSubmitStory = (story: string) => {
     console.log("Submitted story:", story);
-
-    // Simpan cerita dan author (misalnya current user)
     setSubmittedStory(story);
-    setStoryAuthor('1'); // ID penulis sebenarnya (gunakan ID dari mockPlayers, misal "1" untuk "devil")
-
+    setStoryAuthor(currentUserId);
     setCurrentStep(2);
   };
 
@@ -970,32 +1267,151 @@ export default function RoomPage() {
   };
 
   const handlePlayAgain = () => {
-    setCurrentStep(1);
+    setCurrentStep(0); // Back to lobby
     setGameFinished(false);
-    // Reset story saat main lagi
+    setRoomStatus('lobby');
+    setWaitingForPlayers(false); // Reset waiting state
+    setCountdown(null); // Reset countdown
     setSubmittedStory('');
     setSelectedGenre('');
     setGuessResults([]);
-    // Note: Tidak reset poin pemain, biarkan akumulatif
+
+    // Reset ready status
+    setPlayers(prevPlayers =>
+      prevPlayers.map(player => ({ ...player, isReady: false }))
+    );
   };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
-      case 1:
+      case 0: // Lobby
+        return (
+          <Lobby
+            players={players}
+            onReady={handleReady}
+            onStartGame={handleStartGame}
+            onCancelCountdown={handleCancelCountdown}
+            currentUserId={currentUserId}
+            isHost={isHost}
+            waitingForPlayers={waitingForPlayers}
+            countdown={countdown}
+          />
+        );
+      case 1: // Write Story
         return (
           <div className="h-full flex flex-col space-y-4 overflow-y-auto custom-scrollbar">
             <div className="w-full flex-shrink-0">
               <StoryInput onSubmit={handleSubmitStory} />
             </div>
             <div className="w-full flex-shrink-0">
-              <GenreSelection
+              {/* <GenreSelection
                 selectedGenre={selectedGenre}
                 onGenreChange={setSelectedGenre}
-              />
+              /> */}
+              {/* status player list */}
+              {/* Ready Status */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    ✅ Status Kesiapan
+                  </h3>
+                  <div className="text-white/80 text-sm">
+                    {readyPlayers.length}/{players.length} siap
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mb-4 bg-white/20 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ease-out ${allPlayersReady
+                        ? countdown !== null
+                          ? 'bg-gradient-to-r from-orange-400 to-red-500'
+                          : 'bg-gradient-to-r from-green-400 to-emerald-500'
+                        : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                      }`}
+                    style={{ width: `${(readyPlayers.length / Math.max(players.length, 1)) * 100}%` }}
+                  />
+                </div>
+
+                {/* Player Ready List */}
+                <div className="space-y-2">
+                  {players.map((player) => (
+                    <div
+                      key={player.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg transition-all ${player.isReady
+                          ? countdown !== null
+                            ? 'bg-orange-500/20 border border-orange-400/30'
+                            : 'bg-green-500/20 border border-green-400/30'
+                          : 'bg-white/10 border border-white/20'
+                        }`}
+                    >
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center">
+                          😊
+                        </div>
+                        {player.isReady && (
+                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${countdown !== null ? 'bg-orange-500' : 'bg-green-500'
+                            }`}>
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Player Info */}
+                      <div className="flex-grow">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white">
+                            {player.name}
+                          </span>
+                          {player.isHost && (
+                            <span className="bg-yellow-500 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">
+                              Host
+                            </span>
+                          )}
+                          {player.id === currentUserId && (
+                            <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-white/70">
+                          {player.points} poin
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex-shrink-0">
+                        {countdown !== null ? (
+                          <div className="flex items-center gap-1 text-orange-300">
+                            <span className="text-sm animate-pulse">⏰</span>
+                            <span className="text-sm font-medium">Starting in {countdown}s</span>
+                          </div>
+                        ) : waitingForPlayers ? (
+                          <div className="flex items-center gap-1 text-blue-300">
+                            <span className="text-sm animate-pulse">🚀</span>
+                            <span className="text-sm font-medium">Loading...</span>
+                          </div>
+                        ) : player.isReady ? (
+                          <div className="flex items-center gap-1 text-green-300">
+                            <span className="text-sm">✅</span>
+                            <span className="text-sm font-medium">Siap</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-yellow-300">
+                            <span className="text-sm">⏳</span>
+                            <span className="text-sm font-medium">Menunggu</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         );
-      case 2:
+      case 2: // Guess Author
         return (
           <div className="h-full custom-scrollbar">
             <Answer
@@ -1005,7 +1421,7 @@ export default function RoomPage() {
             />
           </div>
         );
-      case 3:
+      case 3: // Review Results
         return (
           <div className="h-full custom-scrollbar">
             <Review
@@ -1039,15 +1455,13 @@ export default function RoomPage() {
               <div className="text-white/80 text-sm">
                 Room: #ABC123
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${roomStatus === 'open' ? 'bg-green-500/20 text-green-300' :
-                roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
-                  roomStatus === 'full' ? 'bg-red-500/20 text-red-300' :
-                    'bg-gray-500/20 text-gray-300'
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${roomStatus === 'lobby' ? 'bg-blue-500/20 text-blue-300' :
+                  roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
+                    'bg-green-500/20 text-green-300'
                 }`}>
-                {roomStatus === 'open' && '🟢 Terbuka'}
-                {roomStatus === 'in_progress' && '🟡 Sedang Bermain'}
-                {roomStatus === 'full' && '🔴 Penuh'}
-                {roomStatus === 'closed' && '⚫ Ditutup'}
+                {roomStatus === 'lobby' && '🏠 Lobby'}
+                {roomStatus === 'in_progress' && '🎮 Bermain'}
+                {roomStatus === 'finished' && '🏁 Selesai'}
               </span>
             </div>
             <div className="text-white/80 text-sm flex items-center gap-1">
@@ -1064,7 +1478,12 @@ export default function RoomPage() {
             {/* Left Sidebar - Player List */}
             <div className="w-full lg:w-80 lg:flex-shrink-0 order-2 lg:order-1">
               <div className="h-64 lg:h-full">
-                <PlayerList players={players} />
+                <PlayerList
+                  players={players}
+                  onReady={handleReady}
+                  currentUserId={currentUserId}
+                  gameStarted={currentStep > 0}
+                />
               </div>
             </div>
 
@@ -1072,14 +1491,16 @@ export default function RoomPage() {
             <div className="flex-1 order-1 lg:order-2 min-h-0">
               <div className="h-full flex flex-col">
 
-                {/* Stepper dengan allowBackNavigation berdasarkan gameFinished */}
-                <Stepper
-                  currentStep={currentStep}
-                  onStepChange={handleStepChange}
-                  allowBackNavigation={gameFinished} // Hanya bisa back navigation jika game sudah selesai
-                />
+                {/* Stepper - Only show during game */}
+                {currentStep > 0 && (
+                  <Stepper
+                    currentStep={currentStep}
+                    onStepChange={handleStepChange}
+                    allowBackNavigation={gameFinished}
+                  />
+                )}
 
-                {/* Game Phase Content */}
+                {/* Game Content */}
                 <div className="flex-1 min-h-0">
                   {renderCurrentStep()}
                 </div>
