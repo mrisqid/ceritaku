@@ -124,13 +124,12 @@ export default function Home() {
   };
 
   const handleShareCode = async () => {
-    const url = `${window.location.origin}/room/${newRoomCode}`;
     try {
-      await navigator.clipboard.writeText(url);
-      setShareMsg("Link ruangan disalin!");
+      await navigator.clipboard.writeText(newRoomCode);
+      setShareMsg("Kode ruangan disalin!");
       setTimeout(() => setShareMsg(""), 1500);
     } catch {
-      setShareMsg("Gagal menyalin link");
+      setShareMsg("Gagal menyalin kode");
       setTimeout(() => setShareMsg(""), 1500);
     }
   };
