@@ -884,7 +884,8 @@ function Lobby({
   currentUserId,
   isHost,
   waitingForPlayers,
-  countdown
+  countdown,
+  minPlayersRequired = 3
 }: {
   players: Player[];
   onReady: () => void;
@@ -894,11 +895,12 @@ function Lobby({
   isHost: boolean;
   waitingForPlayers: boolean;
   countdown: number | null;
+  minPlayersRequired?: number;
 }) {
   const currentUser = players.find(p => p.id === currentUserId);
   const readyPlayers = players.filter(p => p.isReady);
-  const allPlayersReady = players.length >= 2 && readyPlayers.length === players.length;
-  const minPlayersReached = players.length >= 2;
+  const allPlayersReady = players.length >= minPlayersRequired && readyPlayers.length === players.length;
+  const minPlayersReached = players.length >= minPlayersRequired;
 
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg h-full flex flex-col overflow-hidden">
@@ -1105,7 +1107,7 @@ function Lobby({
             <div className="space-y-2 text-sm">
               <div className={`flex items-center gap-2 ${minPlayersReached ? 'text-green-300' : 'text-red-300'}`}>
                 <span>{minPlayersReached ? '✅' : '❌'}</span>
-                <span>Minimal 5 pemain ({players.length}/5)</span>
+                <span>Minimal {minPlayersRequired} pemain ({players.length}/{minPlayersRequired})</span>
               </div>
               <div className={`flex items-center gap-2 ${allPlayersReady ? 'text-green-300' : 'text-yellow-300'}`}>
                 <span>{allPlayersReady ? '✅' : '⏳'}</span>
@@ -1122,7 +1124,7 @@ function Lobby({
             <h4 className="text-white font-bold mb-2">Menunggu Pemain Lain</h4>
             <p className="text-white/80 text-sm">
               {!minPlayersReached
-                ? `Perlu ${2 - players.length} pemain lagi untuk memulai`
+                ? `Perlu ${minPlayersRequired - players.length} pemain lagi untuk memulai`
                 : `Menunggu ${players.length - readyPlayers.length} pemain lagi untuk siap`
               }
             </p>
@@ -1232,8 +1234,8 @@ export default function RoomPage() {
   // Derived states
   const isHost = players.find(p => p.local_id === currentUserLocalId)?.isHost || false;
   const readyPlayers = players.filter(p => p.isReady);
-  const allPlayersReady = players.length >= 2 && readyPlayers.length === players.length;
-  const minPlayersReached = players.length >= 2;
+  const allPlayersReady = players.length >= 3 && readyPlayers.length === players.length;
+  const minPlayersReached = players.length >= 3;
   const submittedCount = submittedStories.size;
   const allStoriesSubmitted = submittedCount === players.length;
 
@@ -1583,6 +1585,7 @@ export default function RoomPage() {
             isHost={isHost}
             waitingForPlayers={waitingForPlayers}
             countdown={countdown}
+            minPlayersRequired={3}
           />
         );
       case 1: // Write Story Phase
