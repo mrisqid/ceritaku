@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import { supabase } from "@/utils/supabaseClient";
 import * as roomService from "@/services/roomService";
 import type { Player, Story, GuessResult } from "@/types/room";
 
@@ -27,6 +26,9 @@ export const useRoom = () => {
   const [localPlayerId, setLocalPlayerId] = useState<string>("");
   const [localPlayer, setLocalPlayer] = useState<Player | null>(null);
 
+  // Refs for cleanup
+  const subscriptionRef = useRef<unknown>(null);
+
   // Initialize room
   const initializeRoom = useCallback(async () => {
     if (!roomCode) return;
@@ -38,7 +40,7 @@ export const useRoom = () => {
       // Get room data
       const room = await roomService.getRoomByCode(roomCode);
       if (!room) {
-        setError("Room not found");
+        setError("Ruangan tidak ditemukan");
         return;
       }
 
@@ -62,13 +64,101 @@ export const useRoom = () => {
         const results = await roomService.getGuessResults(currentStory.id);
         setGuessResults(results);
       }
+
+      // Set up real-time subscription
+      setupRealtimeSubscription(room.id);
     } catch (err) {
       console.error("Error initializing room:", err);
-      setError("Failed to load room");
+      setError(err instanceof Error ? err.message : "Gagal memuat ruangan");
     } finally {
       setLoading(false);
     }
   }, [roomCode, currentStory]);
+
+  // Set up real-time subscription
+  const setupRealtimeSubscription = useCallback((roomId: string) => {
+    // Clean up existing subscription
+    if (
+      subscriptionRef.current &&
+      typeof subscriptionRef.current === "object" &&
+      subscriptionRef.current !== null
+    ) {
+      const subscription = subscriptionRef.current as {
+        unsubscribe: () => void;
+      };
+      subscription.unsubscribe();
+    }
+
+    // Create new subscription
+    subscriptionRef.current = roomService.subscribeToRoom(roomId, (payload) => {
+      console.log("Realtime update:", payload);
+
+      // Handle different types of updates
+      if (payload && typeof payload === "object" && "table" in payload) {
+        const table = (payload as { table: string }).table;
+
+        switch (table) {
+          case "rooms":
+            handleRoomUpdate();
+            break;
+          case "players":
+            handlePlayerUpdate();
+            break;
+          case "stories":
+            handleStoryUpdate();
+            break;
+          case "guesses":
+            handleGuessUpdate();
+            break;
+        }
+      }
+    });
+  }, []);
+
+  // Handle room updates
+  const handleRoomUpdate = useCallback(async () => {
+    try {
+      const room = await roomService.getRoomByCode(roomCode);
+      if (room) {
+        setRoomPhase(room.phase);
+        setGamePhase(room.game_phase);
+      }
+    } catch (err) {
+      console.error("Error handling room update:", err);
+    }
+  }, [roomCode]);
+
+  // Handle player updates
+  const handlePlayerUpdate = useCallback(async () => {
+    try {
+      const updatedPlayers = await roomService.getPlayersInRoom(roomId);
+      setPlayers(updatedPlayers);
+    } catch (err) {
+      console.error("Error handling player update:", err);
+    }
+  }, [roomId]);
+
+  // Handle story updates
+  const handleStoryUpdate = useCallback(async () => {
+    try {
+      const story = await roomService.getCurrentStory(roomId);
+      setCurrentStory(story);
+    } catch (err) {
+      console.error("Error handling story update:", err);
+    }
+  }, [roomId]);
+
+  // Handle guess updates
+  const handleGuessUpdate = useCallback(async () => {
+    try {
+      if (currentStory) {
+        const results = await roomService.getGuessResults(currentStory.id);
+        setGuessResults(results);
+      }
+    } catch (err) {
+      console.error("Error handling guess update:", err);
+    }
+  }, [currentStory]);
 
   // Join room
   const joinRoom = useCallback(
@@ -100,7 +190,9 @@ export const useRoom = () => {
         return player;
       } catch (err) {
         console.error("Error joining room:", err);
-        setError("Failed to join room");
+        setError(
+          err instanceof Error ? err.message : "Gagal bergabung ke ruangan"
+        );
         return null;
       }
     },
@@ -113,21 +205,19 @@ export const useRoom = () => {
       if (!roomId || !localPlayerId) return;
 
       try {
-        const success = await roomService.updatePlayerReady(
-          roomId,
-          localPlayerId,
-          isReady
-        );
-        if (success) {
-          // Update local player state
-          setLocalPlayer((prev) => (prev ? { ...prev, isReady } : null));
+        await roomService.updatePlayerReady(roomId, localPlayerId, isReady);
 
-          // Refresh players list
-          const updatedPlayers = await roomService.getPlayersInRoom(roomId);
-          setPlayers(updatedPlayers);
-        }
+        // Update local player state
+        setLocalPlayer((prev) => (prev ? { ...prev, isReady } : null));
+
+        // Refresh players list
+        const updatedPlayers = await roomService.getPlayersInRoom(roomId);
+        setPlayers(updatedPlayers);
       } catch (err) {
         console.error("Error updating ready status:", err);
+        setError(
+          err instanceof Error ? err.message : "Gagal mengupdate status siap"
+        );
       }
     },
     [roomId, localPlayerId]
@@ -154,6 +244,7 @@ export const useRoom = () => {
         return story;
       } catch (err) {
         console.error("Error submitting story:", err);
+        setError(err instanceof Error ? err.message : "Gagal mengirim cerita");
         return null;
       }
     },
@@ -184,6 +275,7 @@ export const useRoom = () => {
         return guess;
       } catch (err) {
         console.error("Error submitting guess:", err);
+        setError(err instanceof Error ? err.message : "Gagal mengirim tebakan");
         return null;
       }
     },
@@ -196,65 +288,67 @@ export const useRoom = () => {
 
     try {
       await roomService.leaveRoom(roomId, localPlayerId);
+
+      // Clean up subscription
+      if (
+        subscriptionRef.current &&
+        typeof subscriptionRef.current === "object" &&
+        subscriptionRef.current !== null
+      ) {
+        const subscription = subscriptionRef.current as {
+          unsubscribe: () => void;
+        };
+        subscription.unsubscribe();
+        subscriptionRef.current = null;
+      }
+
       // Reset local state
       setLocalPlayer(null);
       setLocalPlayerId("");
     } catch (err) {
       console.error("Error leaving room:", err);
+      setError(
+        err instanceof Error ? err.message : "Gagal keluar dari ruangan"
+      );
     }
   }, [roomId, localPlayerId]);
 
-  // Real-time subscriptions
+  // Cleanup on unmount
   useEffect(() => {
-    if (!roomId) return;
-
-    const subscription = roomService.subscribeToRoom(roomId, (payload) => {
-      console.log("Real-time update:", payload);
-
-      // Handle different types of updates
-      if (payload.table === "rooms") {
-        setRoomPhase(payload.new.phase);
-        setGamePhase(payload.new.game_phase);
-      } else if (payload.table === "players") {
-        // Refresh players list
-        roomService.getPlayersInRoom(roomId).then(setPlayers);
-      } else if (payload.table === "stories") {
-        // Refresh current story
-        roomService.getCurrentStory(roomId).then(setCurrentStory);
-      } else if (payload.table === "guesses" && currentStory) {
-        // Refresh guess results
-        roomService.getGuessResults(currentStory.id).then(setGuessResults);
-      }
-    });
-
     return () => {
-      subscription.unsubscribe();
+      if (
+        subscriptionRef.current &&
+        typeof subscriptionRef.current === "object" &&
+        subscriptionRef.current !== null
+      ) {
+        const subscription = subscriptionRef.current as {
+          unsubscribe: () => void;
+        };
+        subscription.unsubscribe();
+      }
     };
-  }, [roomId, currentStory]);
+  }, []);
 
-  // Initialize on mount
+  // Initialize room on mount
   useEffect(() => {
     initializeRoom();
   }, [initializeRoom]);
 
   return {
-    // Room data
+    // Room state
     roomId,
     roomName,
-    roomCode,
     roomPhase,
     gamePhase,
     players,
     currentStory,
     guessResults,
-
-    // Local player
-    localPlayer,
-    localPlayerId,
-
-    // State
     loading,
     error,
+
+    // Local player state
+    localPlayerId,
+    localPlayer,
 
     // Actions
     joinRoom,
@@ -263,10 +357,7 @@ export const useRoom = () => {
     submitGuess,
     leaveRoom,
 
-    // Computed values
-    isHost: localPlayer?.isHost || false,
-    readyPlayers: players.filter((p) => p.isReady),
-    allPlayersReady: players.length >= 2 && players.every((p) => p.isReady),
-    minPlayersReached: players.length >= 2,
+    // Error handling
+    clearError: () => setError(null),
   };
 };

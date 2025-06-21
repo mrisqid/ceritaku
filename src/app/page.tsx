@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../utils/supabaseClient";
+import * as roomService from "../services/roomService";
 
 const AVATARS = ["😃", "🦊", "🐼", "🐸", "🦄", "🐧", "🐯", "🐵", "🐱", "🐶"];
 
@@ -78,49 +78,41 @@ export default function Home() {
   const handleCreateRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateRoomLoading(true);
-    // 1. Insert room
-    const { data: roomData, error: roomError } = await supabase
-      .from("rooms")
-      .insert([
-        {
-          code: newRoomCode,
-          name: newRoomName,
-        },
-      ])
-      .select()
-      .single();
-    if (roomError || !roomData) {
+
+    try {
+      // Create room using the improved service
+      const result = await roomService.createRoom(newRoomName);
+
+      if (!result) {
+        throw new Error("Gagal membuat ruangan");
+      }
+
+      // Join room as host
+      const player = await roomService.joinRoom(result.roomId, {
+        localId: localStorage.getItem("playerId") ?? "",
+        name: playerName,
+        avatar,
+        isHost: true,
+      });
+
+      if (!player) {
+        throw new Error("Gagal menambahkan host ke ruangan");
+      }
+
+      // Redirect to room
+      setShowCreateRoomModal(false);
+      setCreateRoomLoading(false);
+      router.push(`/room/${result.code}`);
+    } catch (error) {
       setCreateRoomLoading(false);
       setShowCreateRoomModal(false);
-      setJoinErrorMsg("Gagal membuat ruangan. Silakan coba lagi.");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Gagal membuat ruangan. Silakan coba lagi.";
+      setJoinErrorMsg(errorMessage);
       setShowJoinError(true);
-      return;
     }
-    // 2. Insert player (host)
-    const { data: playerData, error: playerError } = await supabase
-      .from("players")
-      .insert([
-        {
-          room_id: roomData.id,
-          local_id: localStorage.getItem("playerId") ?? "",
-          name: playerName,
-          avatar,
-          is_host: true,
-        },
-      ])
-      .select()
-      .single();
-    if (playerError || !playerData) {
-      setCreateRoomLoading(false);
-      setShowCreateRoomModal(false);
-      setJoinErrorMsg("Gagal menambahkan host ke ruangan.");
-      setShowJoinError(true);
-      return;
-    }
-    // 3. Simulate loading, redirect
-    setShowCreateRoomModal(false);
-    setCreateRoomLoading(false);
-    router.push(`/room/${newRoomCode}`);
   };
 
   const handleShareCode = async () => {
@@ -137,41 +129,39 @@ export default function Home() {
   const handleJoinRoom = async () => {
     if (!roomCode.trim()) return;
     setJoinLoading(true);
-    // 1. Check if room exists
-    const { data: room, error: roomErr } = await supabase
-      .from("rooms")
-      .select("id, code")
-      .eq("code", roomCode.trim())
-      .single();
-    if (roomErr || !room) {
+
+    try {
+      // Check if room exists using the improved service
+      const room = await roomService.getRoomByCode(roomCode.trim());
+
+      if (!room) {
+        throw new Error("Kode ruangan tidak ditemukan.");
+      }
+
+      // Join room
+      const player = await roomService.joinRoom(room.id, {
+        localId: localStorage.getItem("playerId") ?? "",
+        name: playerName,
+        avatar,
+        isHost: false,
+      });
+
+      if (!player) {
+        throw new Error("Gagal join ke ruangan. Coba lagi.");
+      }
+
+      // Redirect to room
       setJoinLoading(false);
-      setJoinErrorMsg("Kode ruangan tidak ditemukan.");
-      setShowJoinError(true);
-      return;
-    }
-    // 2. Insert player
-    const { data: playerData, error: playerError } = await supabase
-      .from("players")
-      .insert([
-        {
-          room_id: room.id,
-          local_id: localStorage.getItem("playerId") ?? "",
-          name: playerName,
-          avatar,
-          is_host: false,
-        },
-      ])
-      .select()
-      .single();
-    if (playerError || !playerData) {
+      router.push(`/room/${roomCode.trim()}`);
+    } catch (error) {
       setJoinLoading(false);
-      setJoinErrorMsg("Gagal join ke ruangan. Coba lagi.");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Gagal join ke ruangan. Coba lagi.";
+      setJoinErrorMsg(errorMessage);
       setShowJoinError(true);
-      return;
     }
-    // 3. Redirect
-    setJoinLoading(false);
-    router.push(`/room/${roomCode.trim()}`);
   };
 
   return (

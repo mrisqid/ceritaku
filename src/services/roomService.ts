@@ -1,4 +1,9 @@
-import { supabase } from "@/utils/supabaseClient";
+import {
+  supabase,
+  handleSupabaseError,
+  validateRoomCode,
+  generateUniqueRoomCode,
+} from "@/utils/supabaseClient";
 import type { Player, Story, Guess, GuessResult } from "@/types/room";
 
 // ============ ROOM OPERATIONS ============
@@ -7,8 +12,28 @@ export const createRoom = async (
   name: string
 ): Promise<{ roomId: string; code: string } | null> => {
   try {
-    // Generate unique 6-character code
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Generate unique room code
+    let code: string;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    do {
+      code = generateUniqueRoomCode();
+      attempts++;
+
+      // Check if code already exists
+      const { data: existingRoom } = await supabase
+        .from("rooms")
+        .select("code")
+        .eq("code", code)
+        .single();
+
+      if (!existingRoom) break;
+    } while (attempts < maxAttempts);
+
+    if (attempts >= maxAttempts) {
+      throw new Error("Gagal membuat kode ruangan unik");
+    }
 
     const { data, error } = await supabase
       .from("rooms")
@@ -25,12 +50,16 @@ export const createRoom = async (
     return { roomId: data.id, code: data.code };
   } catch (error) {
     console.error("Error creating room:", error);
-    return null;
+    throw new Error(handleSupabaseError(error, "createRoom"));
   }
 };
 
 export const getRoomByCode = async (code: string) => {
   try {
+    if (!validateRoomCode(code)) {
+      throw new Error("Format kode ruangan tidak valid");
+    }
+
     const { data, error } = await supabase
       .from("rooms")
       .select("*")
@@ -41,7 +70,7 @@ export const getRoomByCode = async (code: string) => {
     return data;
   } catch (error) {
     console.error("Error getting room:", error);
-    return null;
+    throw new Error(handleSupabaseError(error, "getRoomByCode"));
   }
 };
 
@@ -51,7 +80,14 @@ export const updateRoomPhase = async (
   gamePhase?: "story_input" | "guessing" | "reveal"
 ) => {
   try {
-    const updateData: any = { phase };
+    const updateData: {
+      phase: "lobby" | "gameplay" | "result";
+      updated_at: string;
+      game_phase?: "story_input" | "guessing" | "reveal";
+    } = {
+      phase,
+      updated_at: new Date().toISOString(),
+    };
     if (gamePhase) updateData.game_phase = gamePhase;
 
     const { error } = await supabase
@@ -63,7 +99,19 @@ export const updateRoomPhase = async (
     return true;
   } catch (error) {
     console.error("Error updating room phase:", error);
-    return false;
+    throw new Error(handleSupabaseError(error, "updateRoomPhase"));
+  }
+};
+
+export const deleteRoom = async (roomId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from("rooms").delete().eq("id", roomId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting room:", error);
+    throw new Error(handleSupabaseError(error, "deleteRoom"));
   }
 };
 
@@ -79,6 +127,26 @@ export const joinRoom = async (
   }
 ): Promise<Player | null> => {
   try {
+    // Validate input
+    if (!playerData.name.trim()) {
+      throw new Error("Nama pemain tidak boleh kosong");
+    }
+
+    // Check if room exists and is in lobby phase
+    const { data: room } = await supabase
+      .from("rooms")
+      .select("phase")
+      .eq("id", roomId)
+      .single();
+
+    if (!room) {
+      throw new Error("Ruangan tidak ditemukan");
+    }
+
+    if (room.phase !== "lobby") {
+      throw new Error("Ruangan sudah dalam permainan");
+    }
+
     // Check if player already exists
     const { data: existingPlayer } = await supabase
       .from("players")
@@ -91,13 +159,23 @@ export const joinRoom = async (
       return mapPlayerFromDB(existingPlayer);
     }
 
+    // Check room capacity
+    const { count: playerCount } = await supabase
+      .from("players")
+      .select("*", { count: "exact", head: true })
+      .eq("room_id", roomId);
+
+    if (playerCount && playerCount >= 5) {
+      throw new Error("Ruangan sudah penuh");
+    }
+
     // Create new player
     const { data, error } = await supabase
       .from("players")
       .insert({
         room_id: roomId,
         local_id: playerData.localId,
-        name: playerData.name,
+        name: playerData.name.trim(),
         avatar: playerData.avatar,
         is_host: playerData.isHost || false,
         is_ready: false,
@@ -110,7 +188,7 @@ export const joinRoom = async (
     return mapPlayerFromDB(data);
   } catch (error) {
     console.error("Error joining room:", error);
-    return null;
+    throw new Error(handleSupabaseError(error, "joinRoom"));
   }
 };
 
@@ -126,7 +204,7 @@ export const getPlayersInRoom = async (roomId: string): Promise<Player[]> => {
     return data.map(mapPlayerFromDB);
   } catch (error) {
     console.error("Error getting players:", error);
-    return [];
+    throw new Error(handleSupabaseError(error, "getPlayersInRoom"));
   }
 };
 
@@ -138,7 +216,10 @@ export const updatePlayerReady = async (
   try {
     const { error } = await supabase
       .from("players")
-      .update({ is_ready: isReady })
+      .update({
+        is_ready: isReady,
+        updated_at: new Date().toISOString(),
+      })
       .eq("room_id", roomId)
       .eq("local_id", localId);
 
@@ -146,7 +227,7 @@ export const updatePlayerReady = async (
     return true;
   } catch (error) {
     console.error("Error updating player ready status:", error);
-    return false;
+    throw new Error(handleSupabaseError(error, "updatePlayerReady"));
   }
 };
 
@@ -158,7 +239,10 @@ export const updatePlayerScore = async (
   try {
     const { error } = await supabase
       .from("players")
-      .update({ score })
+      .update({
+        score,
+        updated_at: new Date().toISOString(),
+      })
       .eq("room_id", roomId)
       .eq("local_id", localId);
 
@@ -166,7 +250,7 @@ export const updatePlayerScore = async (
     return true;
   } catch (error) {
     console.error("Error updating player score:", error);
-    return false;
+    throw new Error(handleSupabaseError(error, "updatePlayerScore"));
   }
 };
 
@@ -182,10 +266,21 @@ export const leaveRoom = async (
       .eq("local_id", localId);
 
     if (error) throw error;
+
+    // Check if room is empty and delete it
+    const { count: remainingPlayers } = await supabase
+      .from("players")
+      .select("*", { count: "exact", head: true })
+      .eq("room_id", roomId);
+
+    if (remainingPlayers === 0) {
+      await deleteRoom(roomId);
+    }
+
     return true;
   } catch (error) {
     console.error("Error leaving room:", error);
-    return false;
+    throw new Error(handleSupabaseError(error, "leaveRoom"));
   }
 };
 
@@ -197,12 +292,41 @@ export const submitStory = async (
   content: string
 ): Promise<Story | null> => {
   try {
+    if (!content.trim()) {
+      throw new Error("Cerita tidak boleh kosong");
+    }
+
+    // Check if story already exists for this author in this room
+    const { data: existingStory } = await supabase
+      .from("stories")
+      .select("id")
+      .eq("room_id", roomId)
+      .eq("author_id", authorId)
+      .single();
+
+    if (existingStory) {
+      // Update existing story
+      const { data, error } = await supabase
+        .from("stories")
+        .update({
+          content: content.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingStory.id)
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return mapStoryFromDB(data);
+    }
+
+    // Create new story
     const { data, error } = await supabase
       .from("stories")
       .insert({
         room_id: roomId,
         author_id: authorId,
-        content,
+        content: content.trim(),
         is_revealed: false,
       })
       .select("*")
@@ -212,7 +336,7 @@ export const submitStory = async (
     return mapStoryFromDB(data);
   } catch (error) {
     console.error("Error submitting story:", error);
-    return null;
+    throw new Error(handleSupabaseError(error, "submitStory"));
   }
 };
 
@@ -233,7 +357,7 @@ export const getCurrentStory = async (
     return mapStoryFromDB(data);
   } catch (error) {
     console.error("Error getting current story:", error);
-    return null;
+    throw new Error(handleSupabaseError(error, "getCurrentStory"));
   }
 };
 
@@ -241,14 +365,17 @@ export const revealStory = async (storyId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("stories")
-      .update({ is_revealed: true })
+      .update({
+        is_revealed: true,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", storyId);
 
     if (error) throw error;
     return true;
   } catch (error) {
     console.error("Error revealing story:", error);
-    return false;
+    throw new Error(handleSupabaseError(error, "revealStory"));
   }
 };
 
@@ -286,7 +413,7 @@ export const submitGuess = async (
     return mapGuessFromDB(data);
   } catch (error) {
     console.error("Error submitting guess:", error);
-    return null;
+    throw new Error(handleSupabaseError(error, "submitGuess"));
   }
 };
 
@@ -299,8 +426,9 @@ export const getGuessResults = async (
       .select(
         `
         *,
-        players!guesses_player_id_fkey(name),
-        stories!guesses_story_id_fkey(content)
+        player:players!guesses_player_id_fkey(name, avatar),
+        guessed_author:players!guesses_guessed_author_id_fkey(name, avatar),
+        story:stories!guesses_story_id_fkey(content)
       `
       )
       .eq("story_id", storyId);
@@ -309,29 +437,29 @@ export const getGuessResults = async (
 
     return data.map((guess) => ({
       id: guess.id,
-      player: guess.players?.name || "Unknown",
-      guess: guess.guessed_author_id, // This will be resolved to name later
+      player: guess.player?.name || "Unknown",
+      guess: guess.guessed_author?.name || "Unknown",
       guessId: guess.guessed_author_id,
       correct: guess.is_correct,
-      story: guess.stories?.content || "",
+      story: guess.story?.content || "",
       points: guess.is_correct ? 10 : 0,
     }));
   } catch (error) {
     console.error("Error getting guess results:", error);
-    return [];
+    throw new Error(handleSupabaseError(error, "getGuessResults"));
   }
 };
 
-// ============ REAL-TIME SUBSCRIPTIONS ============
+// ============ REALTIME SUBSCRIPTIONS ============
 
 export const subscribeToRoom = (
   roomId: string,
-  callback: (payload: any) => void
+  callback: (payload: unknown) => void
 ) => {
-  return supabase
+  const subscription = supabase
     .channel(`room:${roomId}`)
     .on(
-      "postgres_changes",
+      "postgres_changes" as any,
       {
         event: "*",
         schema: "public",
@@ -341,7 +469,7 @@ export const subscribeToRoom = (
       callback
     )
     .on(
-      "postgres_changes",
+      "postgres_changes" as any,
       {
         event: "*",
         schema: "public",
@@ -351,7 +479,7 @@ export const subscribeToRoom = (
       callback
     )
     .on(
-      "postgres_changes",
+      "postgres_changes" as any,
       {
         event: "*",
         schema: "public",
@@ -361,7 +489,7 @@ export const subscribeToRoom = (
       callback
     )
     .on(
-      "postgres_changes",
+      "postgres_changes" as any,
       {
         event: "*",
         schema: "public",
@@ -371,11 +499,23 @@ export const subscribeToRoom = (
       callback
     )
     .subscribe();
+
+  return subscription;
 };
 
 // ============ HELPER FUNCTIONS ============
 
-const mapPlayerFromDB = (dbPlayer: any): Player => ({
+const mapPlayerFromDB = (dbPlayer: {
+  id: string;
+  local_id: string;
+  name: string;
+  avatar: string;
+  score: number;
+  is_host: boolean;
+  is_ready: boolean;
+  created_at: string;
+  updated_at: string;
+}): Player => ({
   id: dbPlayer.id,
   local_id: dbPlayer.local_id,
   name: dbPlayer.name,
@@ -383,16 +523,35 @@ const mapPlayerFromDB = (dbPlayer: any): Player => ({
   avatar: dbPlayer.avatar,
   isHost: dbPlayer.is_host,
   isReady: dbPlayer.is_ready,
+  isCurrentTurn: false,
+  isKicked: false,
+  isWaiting: false,
 });
 
-const mapStoryFromDB = (dbStory: any): Story => ({
+const mapStoryFromDB = (dbStory: {
+  id: string;
+  room_id: string;
+  author_id: string;
+  content: string;
+  is_revealed: boolean;
+  created_at: string;
+  updated_at: string;
+}): Story => ({
   id: dbStory.id,
   content: dbStory.content,
   authorId: dbStory.author_id,
   isRevealed: dbStory.is_revealed,
 });
 
-const mapGuessFromDB = (dbGuess: any): Guess => ({
+const mapGuessFromDB = (dbGuess: {
+  id: string;
+  story_id: string;
+  player_id: string;
+  guessed_author_id: string;
+  is_correct: boolean;
+  created_at: string;
+  updated_at: string;
+}): Guess => ({
   id: dbGuess.id,
   storyId: dbGuess.story_id,
   playerId: dbGuess.player_id,
