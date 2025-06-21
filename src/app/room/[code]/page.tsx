@@ -512,14 +512,14 @@ function Answer({
   );
 }
 
-
-// Enhanced Review Component
-function Review({
+// NEW: Enhanced Review Component with all stories and guesses
+function EnhancedReview({
   submittedStory,
   storyAuthor,
   playerGuess,
   players,
   guessResults,
+  allSubmittedStories,
   onPlayAgain
 }: {
   submittedStory: string;
@@ -527,10 +527,12 @@ function Review({
   playerGuess: string;
   players: Player[];
   guessResults: any[];
+  allSubmittedStories: Map<string, string>;
   onPlayAgain: () => void;
 }) {
   const router = useRouter();
   const [showConfetti, setShowConfetti] = useState(true);
+  const [activeTab, setActiveTab] = useState<'guessing' | 'allstories'>('guessing');
 
   // Hitung apakah tebakan benar
   const isGuessCorrect = playerGuess === storyAuthor;
@@ -575,12 +577,41 @@ function Review({
           <h2 className="text-2xl font-bold flex items-center gap-3 mb-2">
             🎉 Review Hasil Tebakan
           </h2>
-          <p className="text-emerald-100 text-sm">Selamat! Lihat siapa yang berhasil menebak dengan benar</p>
+          <p className="text-emerald-100 text-sm">Lihat hasil tebakan dan semua cerita yang ditulis!</p>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex-shrink-0 bg-white/20 border-b border-white/30">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('guessing')}
+            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${
+              activeTab === 'guessing'
+                ? 'bg-white text-gray-800 border-b-2 border-emerald-500'
+                : 'text-white/80 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            🎯 Hasil Tebakan
+          </button>
+          <button
+            onClick={() => setActiveTab('allstories')}
+            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${
+              activeTab === 'allstories'
+                ? 'bg-white text-gray-800 border-b-2 border-emerald-500'
+                : 'text-white/80 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            📚 Semua Cerita
+          </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
+        {activeTab === 'guessing' ? (
+          // Guessing Results Tab
+          <>
         {/* Story Author Reveal Section */}
         <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg relative overflow-hidden">
           {/* Background decoration */}
@@ -593,32 +624,13 @@ function Review({
                 <span className="text-2xl">📖</span>
               </div>
               <div>
-                <h3 className="text-xl font-bold">Penulis Cerita Terungkap!</h3>
-                <p className="text-blue-100 text-sm">Inilah siapa yang menulis cerita tersebut</p>
+                    <h3 className="text-xl font-bold">Cerita yang Ditebak</h3>
+                    <p className="text-blue-100 text-sm">Penulis: {authorName}</p>
               </div>
             </div>
 
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 w-full overflow-hidden">
-              <div className="flex items-start gap-4">
-                {/* Author Avatar */}
-                <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-2xl">👤</span>
-                  </div>
-                  <div className="mt-2 text-center">
-                    <div className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                      Penulis
-                    </div>
-                  </div>
-                </div>
-
-                {/* Story Content */}
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-bold text-lg">{authorName}</span>
-                    <span className="text-blue-200">menulis cerita:</span>
-                  </div>
-                  <div className="bg-white/20 rounded-lg p-3 border-l-4 border-yellow-400 w-full overflow-hidden">
+                  <div className="w-full overflow-hidden bg-white/20 rounded-lg p-3 mb-3">
                     <p
                       className="text-white/90 italic leading-relaxed"
                       style={{
@@ -634,7 +646,7 @@ function Review({
                   </div>
 
                   {/* Your Guess Result */}
-                  <div className="mt-3 p-3 rounded-lg bg-white/20">
+                  <div className="p-3 rounded-lg bg-white/20">
                     <div className="flex items-center gap-2">
                       <span className={`text-2xl ${isGuessCorrect ? '✅' : '❌'}`}></span>
                       <span className="font-medium break-words">
@@ -643,33 +655,9 @@ function Review({
                       </span>
                     </div>
                   </div>
-
-                  {/* Story Stats */}
-                  <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <span>🎯</span>
-                      <span>{correctGuesses} orang menebak benar</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span>❌</span>
-                      <span>{totalGuesses - correctGuesses} orang salah tebak</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span>🏆</span>
-                      <span>{guessResults.reduce((sum, r) => sum + r.points, 0)} total poin diberikan</span>
                     </div>
-
-                    <div className="rounded-lg">
-                      <EmojiReaction storyId="story1" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Updated Player Leaderboard */}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -697,14 +685,14 @@ function Review({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-yellow-600">{guessResults.reduce((sum, r) => sum + r.points, 0)}</div>
-                <div className="text-sm text-gray-600">Total Poin Diberikan</div>
+                    <div className="text-sm text-gray-600">Total Poin</div>
               </div>
               <div className="text-3xl">🏆</div>
             </div>
           </div>
         </div>
 
-        {/* Results List with Enhanced Design */}
+            {/* Results List */}
         <div className="space-y-4">
           <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             🎯 Detail Tebakan Pemain
@@ -717,7 +705,6 @@ function Review({
                 ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50'
                 : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
                 }`}
-              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="p-5">
                 <div className="flex items-center gap-4 mb-3">
@@ -744,18 +731,6 @@ function Review({
                         </span>
                       )}
                     </div>
-                    <div className="bg-white/50 p-2 rounded overflow-hidden">
-                      <p
-                        className="text-sm text-gray-600 italic"
-                        style={{
-                          wordBreak: 'break-all',
-                          overflowWrap: 'anywhere',
-                          whiteSpace: 'pre-wrap'
-                        }}
-                      >
-                        "{result.story}"
-                      </p>
-                    </div>
                   </div>
 
                   {/* Points Display */}
@@ -773,22 +748,95 @@ function Review({
                     <div className="text-xs text-gray-500">poin</div>
                   </div>
                 </div>
-
-                {/* Progress bar for visual appeal */}
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-1000 ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
-                      }`}
-                    style={{
-                      width: result.correct ? '100%' : '30%',
-                      animationDelay: `${index * 0.2}s`
-                    }}
-                  ></div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+          </>
+        ) : (
+          // All Stories Tab
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              📚 Semua Cerita yang Ditulis
+            </h3>
+
+            {Array.from(allSubmittedStories.entries()).map(([authorId, story], index) => {
+              const author = players.find(p => p.id === authorId);
+              const isCurrentUser = authorId === '1'; // current user ID
+              
+              return (
+                <div
+                  key={authorId}
+                  className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg w-full ${
+                    isCurrentUser
+                      ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50'
+                      : 'border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50'
+                  }`}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="p-5">
+                    <div className="flex items-start gap-4">
+                      {/* Author Avatar */}
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${
+                        isCurrentUser ? 'bg-blue-500' : 'bg-gray-500'
+                      }`}>
+                        <span className="text-white">👤</span>
+                      </div>
+
+                      {/* Story Content */}
+                      <div className="flex-grow min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`font-bold text-lg ${
+                            isCurrentUser ? 'text-blue-700' : 'text-gray-700'
+                          }`}>
+                            {author?.name}
+                          </span>
+                          {isCurrentUser && (
+                            <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                              Your Story
+                            </span>
+                          )}
+                          {authorId === storyAuthor && (
+                            <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
+                              Was Guessed
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="bg-white/70 p-4 rounded-lg border-l-4 border-gray-300 overflow-hidden">
+                          <p
+                            className="text-gray-800 leading-relaxed"
+                    style={{
+                              wordBreak: 'break-all',
+                              overflowWrap: 'anywhere',
+                              hyphens: 'auto',
+                              maxWidth: '100%',
+                              whiteSpace: 'pre-wrap'
+                            }}
+                          >
+                            "{story}"
+                          </p>
+                </div>
+
+                        {/* Story Stats */}
+                        <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <span>📝</span>
+                            <span>{story.length} karakter</span>
+              </div>
+                          <div className="flex items-center gap-1">
+                            <span>👤</span>
+                            <span>Oleh {author?.name}</span>
+            </div>
         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4">
@@ -1153,12 +1201,12 @@ const statusMessages = {
 
 export default function RoomPage() {
   const [players, setPlayers] = useState(mockPlayers);
-  const [currentStep, setCurrentStep] = useState<number>(0); // 0 = Lobby, 1 = Game Started
+  const [currentStep, setCurrentStep] = useState<number>(0);
   const [roomStatus, setRoomStatus] = useState<'lobby' | 'in_progress' | 'finished'>('lobby');
   const [currentTime, setCurrentTime] = useState<string>('');
   const [gameFinished, setGameFinished] = useState(false);
-  const [waitingForPlayers, setWaitingForPlayers] = useState(false); // New state for waiting
-  const [countdown, setCountdown] = useState<number | null>(null); // New state for countdown
+  const [waitingForPlayers, setWaitingForPlayers] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   // State untuk menyimpan cerita dan penulis
   const [submittedStory, setSubmittedStory] = useState<string>('');
@@ -1166,15 +1214,24 @@ export default function RoomPage() {
   const [storyAuthor, setStoryAuthor] = useState<string>('');
   const [playerGuess, setPlayerGuess] = useState<string>('');
   const [guessResults, setGuessResults] = useState<any[]>([]);
+  
+  // NEW: Simplified states
+  const [submittedStories, setSubmittedStories] = useState<Map<string, string>>(new Map());
+  const [hasCurrentUserSubmitted, setHasCurrentUserSubmitted] = useState<boolean>(false);
+  const [randomStoryForGuessing, setRandomStoryForGuessing] = useState<{story: string, authorId: string} | null>(null);
 
   // Game settings
-  const currentUserId = '1'; // ID user saat ini (dari session/auth)
+  const currentUserId = '1';
   const isHost = players.find(p => p.id === currentUserId)?.isHost || false;
 
   // Check if all players are ready
   const readyPlayers = players.filter(p => p.isReady);
   const allPlayersReady = players.length >= 2 && readyPlayers.length === players.length;
   const minPlayersReached = players.length >= 2;
+
+  // NEW: Story submission logic
+  const submittedCount = submittedStories.size;
+  const allStoriesSubmitted = submittedCount === players.length;
 
   // Memoize updateTime function dengan useCallback
   const updateTime = useCallback(() => {
@@ -1192,9 +1249,8 @@ export default function RoomPage() {
   useEffect(() => {
     if (allPlayersReady && minPlayersReached && currentStep === 0 && countdown === null) {
       setWaitingForPlayers(true);
-      setCountdown(5); // Start 5 second countdown
+      setCountdown(5);
     } else if (!allPlayersReady && countdown !== null) {
-      // Reset countdown if someone becomes unready
       setCountdown(null);
       setWaitingForPlayers(false);
     }
@@ -1209,13 +1265,34 @@ export default function RoomPage() {
 
       return () => clearTimeout(timer);
     } else if (countdown === 0) {
-      // Start game when countdown reaches 0
       setCurrentStep(1);
       setRoomStatus('in_progress');
       setWaitingForPlayers(false);
       setCountdown(null);
     }
   }, [countdown]);
+
+  // NEW: Auto proceed to guessing phase when all stories submitted
+  useEffect(() => {
+    if (allStoriesSubmitted && currentStep === 1 && submittedCount > 0) {
+      setTimeout(() => {
+        // Pick a random story for guessing (not from current user)
+        const otherPlayersStories = Array.from(submittedStories.entries())
+          .filter(([authorId]) => authorId !== currentUserId);
+        
+        if (otherPlayersStories.length > 0) {
+          const randomIndex = Math.floor(Math.random() * otherPlayersStories.length);
+          const [authorId, story] = otherPlayersStories[randomIndex];
+          
+          setRandomStoryForGuessing({ story, authorId });
+          setSubmittedStory(story);
+          setStoryAuthor(authorId);
+        }
+        
+        setCurrentStep(2); // Move to guessing phase
+      }, 3000);
+    }
+  }, [allStoriesSubmitted, currentStep, submittedCount, submittedStories, currentUserId]);
 
   const handleReady = () => {
     setPlayers(prevPlayers =>
@@ -1229,7 +1306,6 @@ export default function RoomPage() {
 
   const handleStartGame = () => {
     if (allPlayersReady && minPlayersReached) {
-      // Cancel countdown and start immediately
       setCountdown(null);
       setWaitingForPlayers(true);
 
@@ -1242,7 +1318,6 @@ export default function RoomPage() {
   };
 
   const handleCancelCountdown = () => {
-    // Allow players to cancel the countdown
     setCountdown(null);
     setWaitingForPlayers(false);
   };
@@ -1253,11 +1328,42 @@ export default function RoomPage() {
     }
   };
 
+  // NEW: Simplified handleSubmitStory
   const handleSubmitStory = (story: string) => {
+    if (hasCurrentUserSubmitted) {
+      alert("Anda sudah submit cerita!");
+      return;
+    }
+
     console.log("Submitted story:", story);
-    setSubmittedStory(story);
-    setStoryAuthor(currentUserId);
-    setCurrentStep(2);
+    
+    // Save the story for current user
+    setSubmittedStories(prev => new Map(prev.set(currentUserId, story)));
+    setHasCurrentUserSubmitted(true);
+    
+    // Simulate other players submitting stories
+    simulateOtherPlayersSubmit();
+  };
+
+  // NEW: Simulate other players submitting stories
+  const simulateOtherPlayersSubmit = () => {
+    const otherPlayers = players.filter(p => p.id !== currentUserId && !submittedStories.has(p.id));
+    
+    otherPlayers.forEach((player, index) => {
+      setTimeout(() => {
+        const randomStories = [
+          "Saya pernah tersesat di mall selama 3 jam karena terlalu malu untuk bertanya",
+          "Waktu kecil saya pernah makan pasta gigi karena dikira es krim",
+          "Saya pernah tidur di dalam lemari karena takut monster di bawah tempat tidur",
+          "Saya pernah menangis karena es krim jatuh, padahal umur sudah 20 tahun",
+          "Saya pernah berbicara dengan cermin selama 1 jam karena merasa kesepian"
+        ];
+        
+        const randomStory = randomStories[Math.floor(Math.random() * randomStories.length)];
+        
+        setSubmittedStories(prev => new Map(prev.set(player.id, randomStory)));
+      }, (index + 1) * 2000); // Each player submits 2 seconds apart
+    });
   };
 
   // Fungsi untuk generate tebakan random untuk AI players
@@ -1278,8 +1384,8 @@ export default function RoomPage() {
 
   // Fungsi untuk menghitung hasil tebakan dan update poin
   const calculateGuessResults = (userGuess: string, authorId: string) => {
-    const currentUserId = '1'; // ID user saat ini (sesuaikan dengan session/auth)
-    const isUserGuessCorrect = userGuess === authorId && userGuess !== ''; // Empty string = salah
+    const currentUserId = '1';
+    const isUserGuessCorrect = userGuess === authorId && userGuess !== '';
 
     // Generate hasil tebakan untuk semua pemain
     const results = players.map((player) => {
@@ -1290,17 +1396,6 @@ export default function RoomPage() {
         // Untuk current user, gunakan tebakan yang sebenarnya
         guess = userGuess;
         correct = isUserGuessCorrect;
-      } else if (player.id === authorId) {
-        // Penulis cerita tidak menebak dirinya sendiri
-        const otherPlayers = players.filter(p => p.id !== player.id);
-        if (otherPlayers.length > 0) {
-          const randomTarget = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
-          guess = randomTarget.id;
-          correct = false;
-        } else {
-          guess = player.id;
-          correct = false;
-        }
       } else {
         // Untuk pemain lain, generate random guess
         guess = generateRandomGuess(player.id, authorId, players);
@@ -1311,13 +1406,17 @@ export default function RoomPage() {
       const guessedPlayer = players.find(p => p.id === guess);
       const guessName = guess === '' ? 'Tidak menebak (waktu habis)' : (guessedPlayer ? guessedPlayer.name : guess);
 
+      // Get player's submitted story
+      const playerStory = submittedStories.get(player.id) || '';
+
       return {
         id: player.id,
         player: player.name,
         guess: guessName,
         guessId: guess,
         correct: correct,
-        story: submittedStory,
+        story: playerStory,
+        guessedStory: submittedStory,
         points: correct ? 10 : 0
       };
     });
@@ -1365,14 +1464,21 @@ export default function RoomPage() {
   };
 
   const handlePlayAgain = () => {
-    setCurrentStep(0); // Back to lobby
+    setCurrentStep(0);
     setGameFinished(false);
     setRoomStatus('lobby');
-    setWaitingForPlayers(false); // Reset waiting state
-    setCountdown(null); // Reset countdown
+    setWaitingForPlayers(false);
+    setCountdown(null);
     setSubmittedStory('');
     setSelectedGenre('');
     setGuessResults([]);
+    
+    // Reset states
+    setSubmittedStories(new Map());
+    setHasCurrentUserSubmitted(false);
+    setRandomStoryForGuessing(null);
+    setStoryAuthor('');
+    setPlayerGuess('');
 
     // Reset ready status
     setPlayers(prevPlayers =>
@@ -1395,51 +1501,63 @@ export default function RoomPage() {
             countdown={countdown}
           />
         );
-      case 1: // Write Story
+      case 1: // Write Story Phase - Everyone writes simultaneously
         return (
           <div className="h-full flex flex-col space-y-4 overflow-y-auto custom-scrollbar">
             <div className="w-full flex-shrink-0">
+              {/* Story Input or Waiting Message */}
+              {!hasCurrentUserSubmitted ? (
               <StoryInput onSubmit={handleSubmitStory} />
+              ) : (
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
+                  <div className="text-center text-green-300">
+                    <div className="text-4xl mb-4">✅</div>
+                    <h3 className="text-xl font-bold text-white mb-2">Cerita Anda Sudah Dikirim!</h3>
+                    <p className="text-sm">
+                      Menunggu pemain lain menyelesaikan cerita mereka...
+                    </p>
             </div>
+                </div>
+              )}
+            </div>
+            
             <div className="w-full flex-shrink-0">
-              {/* <GenreSelection
-                selectedGenre={selectedGenre}
-                onGenreChange={setSelectedGenre}
-              /> */}
-              {/* status player list */}
-              {/* Ready Status */}
+              {/* Story Submission Status */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    ✅ Status Kesiapan
+                      📝 Status Penulisan Cerita
                   </h3>
                   <div className="text-white/80 text-sm">
-                    {readyPlayers.length}/{players.length} siap
+                      {submittedCount}/{players.length} selesai
                   </div>
                 </div>
 
                 {/* Progress Bar */}
                 <div className="mb-4 bg-white/20 rounded-full h-3 overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-500 ease-out ${allPlayersReady
-                      ? countdown !== null
-                        ? 'bg-gradient-to-r from-orange-400 to-red-500'
-                        : 'bg-gradient-to-r from-green-400 to-emerald-500'
+                      className={`h-full transition-all duration-500 ease-out ${
+                        allStoriesSubmitted
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-500'
                       : 'bg-gradient-to-r from-blue-400 to-purple-500'
                       }`}
-                    style={{ width: `${(readyPlayers.length / Math.max(players.length, 1)) * 100}%` }}
+                      style={{ width: `${(submittedCount / Math.max(players.length, 1)) * 100}%` }}
                   />
                 </div>
 
-                {/* Player Ready List */}
+                  {/* Player Status List */}
                 <div className="space-y-2">
-                  {players.map((player) => (
+                    {players.map((player) => {
+                      const hasSubmitted = submittedStories.has(player.id);
+                      const isCurrentPlayer = player.id === currentUserId;
+                      
+                      return (
                     <div
                       key={player.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg transition-all ${player.isReady
-                        ? countdown !== null
-                          ? 'bg-orange-500/20 border border-orange-400/30'
-                          : 'bg-green-500/20 border border-green-400/30'
+                          className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                            hasSubmitted
+                              ? 'bg-green-500/20 border border-green-400/30'
                         : 'bg-white/10 border border-white/20'
                         }`}
                     >
@@ -1448,9 +1566,8 @@ export default function RoomPage() {
                         <div className="w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center">
                           😊
                         </div>
-                        {player.isReady && (
-                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${countdown !== null ? 'bg-orange-500' : 'bg-green-500'
-                            }`}>
+                            {hasSubmitted && (
+                              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center bg-green-500">
                             <span className="text-white text-xs">✓</span>
                           </div>
                         )}
@@ -1467,7 +1584,7 @@ export default function RoomPage() {
                               Host
                             </span>
                           )}
-                          {player.id === currentUserId && (
+                              {isCurrentPlayer && (
                             <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
                               You
                             </span>
@@ -1478,38 +1595,65 @@ export default function RoomPage() {
                         </div>
                       </div>
 
-                      {/* Status */}
+                          {/* Submit Status */}
                       <div className="flex-shrink-0">
-                        {countdown !== null ? (
-                          <div className="flex items-center gap-1 text-orange-300">
-                            <span className="text-sm animate-pulse">⏰</span>
-                            <span className="text-sm font-medium">Starting in {countdown}s</span>
-                          </div>
-                        ) : waitingForPlayers ? (
-                          <div className="flex items-center gap-1 text-blue-300">
-                            <span className="text-sm animate-pulse">🚀</span>
-                            <span className="text-sm font-medium">Loading...</span>
-                          </div>
-                        ) : player.isReady ? (
+                            {hasSubmitted ? (
                           <div className="flex items-center gap-1 text-green-300">
                             <span className="text-sm">✅</span>
-                            <span className="text-sm font-medium">Siap</span>
+                                <span className="text-sm font-medium">Selesai</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1 text-yellow-300">
-                            <span className="text-sm">⏳</span>
-                            <span className="text-sm font-medium">Menunggu</span>
+                                <span className="text-sm">✍️</span>
+                                <span className="text-sm font-medium">
+                                  {isCurrentPlayer ? 'Menunggu Anda' : 'Sedang Menulis...'}
+                                </span>
                           </div>
                         )}
                       </div>
                     </div>
-                  ))}
+                      );
+                    })}
+                </div>
+
+                  {/* All Stories Submitted Message */}
+                  {allStoriesSubmitted && (
+                    <div className="mt-4 text-center p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+                      <div className="text-2xl mb-2">🎉</div>
+                      <h4 className="text-white font-bold mb-1">Semua Cerita Sudah Ditulis!</h4>
+                      <p className="text-green-200 text-sm">
+                        Lanjut ke fase menebak dalam 3 detik...
+                      </p>
+              </div>
+                  )}
+
+                  {/* Waiting Message */}
+                  {!allStoriesSubmitted && submittedCount > 0 && (
+                    <div className="mt-4 text-center p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                      <div className="text-2xl mb-2">⏳</div>
+                      <h4 className="text-white font-bold mb-1">Menunggu Pemain Lain</h4>
+                      <p className="text-blue-200 text-sm">
+                        {players.length - submittedCount} pemain belum menulis cerita
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Instructions for new players */}
+                  {submittedCount === 0 && (
+                    <div className="mt-4 text-center p-4 bg-purple-500/20 rounded-lg border border-purple-400/30">
+                      <div className="text-2xl mb-2">📝</div>
+                      <h4 className="text-white font-bold mb-1">Mulai Menulis!</h4>
+                      <p className="text-purple-200 text-sm">
+                        Semua pemain menulis cerita bersamaan. Tulis cerita menarik tentang diri Anda!
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         );
-      case 2: // Guess Author
+      case 2: // Guess Author Phase
         return (
           <div className="h-full custom-scrollbar">
             <Answer
@@ -1519,15 +1663,16 @@ export default function RoomPage() {
             />
           </div>
         );
-      case 3: // Review Results
+      case 3: // Review Results - Enhanced with all stories and guesses
         return (
           <div className="h-full custom-scrollbar">
-            <Review
+            <EnhancedReview
               submittedStory={submittedStory}
               storyAuthor={storyAuthor}
               playerGuess={playerGuess}
               players={players}
               guessResults={guessResults}
+              allSubmittedStories={submittedStories}
               onPlayAgain={handlePlayAgain}
             />
           </div>
