@@ -2,27 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { GuessPlayer, PlayerListProps, StepperProps, StoryInputProps, type Player } from "@/types/room";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 // Import helper function
 import { getCurrentTime12Hour } from "@/helper/timeUtils";
 import EmojiReaction from "@/components/ui/EmojiReaction";
 import GenreSelection from "@/components/ui/GenreSelection";
 
-// Import Supabase services
-import {
-  getRoomByCode,
-  joinRoom,
-  getPlayersInRoom,
-  updatePlayerReady,
-  submitStory,
-  getCurrentStory,
-  submitGuess,
-  getGuessResults,
-  leaveRoom,
-  updateRoomPhase,
-  subscribeToRoom
-} from "@/services/roomService";
 
 // ============ COMPONENTS ============
 
@@ -119,25 +105,22 @@ function Stepper({ currentStep, onStepChange, allowBackNavigation = false }: Ste
 }
 
 // PlayerList Component
-function PlayerList({ 
-  players, 
-  onReady, 
-  currentUserId, 
-  gameStarted, 
-  onLeaveRoom 
-}: PlayerListProps & {
+function PlayerList({ players, onReady, currentUserId, gameStarted }: PlayerListProps & {
   onReady: () => void;
   currentUserId: string;
   gameStarted: boolean;
-  onLeaveRoom?: () => void;
 }) {
-  const handleLeaveRoom = () => {
-    if (onLeaveRoom) {
-      onLeaveRoom();
-    }
-  };
+  const router = useRouter();
 
-  const currentUser = players.find(p => p.local_id === currentUserId);
+  function handleKickPlayer(id: string): void {
+    throw new Error("Function not implemented.");
+  }
+
+  function handleLeaveRoom(): void {
+    router.push('/');
+  }
+
+  const currentUser = players.find(p => p.id === currentUserId);
 
   return (
     <div className="bg-white rounded-xl shadow-lg h-full flex flex-col">
@@ -371,7 +354,7 @@ function Answer({
             </h2>
             <p className="text-purple-100 text-sm mt-1">Tebak siapa penulis cerita di bawah ini</p>
           </div>
-          
+
           {/* Countdown Display */}
           <div className="flex flex-col items-center">
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${getCountdownBgColor()} border border-white/20`}>
@@ -432,20 +415,19 @@ function Answer({
           <h4 className="text-md font-semibold text-gray-700 mb-3">
             Pilih siapa yang menulis cerita ini:
           </h4>
-          
+
           {/* Scrollable Player List */}
           <div className="max-h-64 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
             {availablePlayers.length > 0 ? (
               availablePlayers.map((player) => (
                 <label
                   key={player.id}
-                  className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    isTimeUp 
+                  className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${isTimeUp
                       ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-100'
                       : selectedPlayer === player.id
                         ? 'border-purple-500 bg-purple-50 shadow-md'
                         : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <input
                     type="radio"
@@ -456,11 +438,10 @@ function Answer({
                     className="sr-only"
                     disabled={isTimeUp}
                   />
-                  <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
-                    selectedPlayer === player.id
+                  <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${selectedPlayer === player.id
                       ? 'border-purple-500 bg-purple-500'
                       : 'border-gray-300'
-                  }`}>
+                    }`}>
                     {selectedPlayer === player.id && (
                       <div className="w-2 h-2 bg-white rounded-full"></div>
                     )}
@@ -471,9 +452,8 @@ function Answer({
                     👤
                   </div>
 
-                  <span className={`font-medium ${
-                    selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
-                  }`}>
+                  <span className={`font-medium ${selectedPlayer === player.id ? 'text-purple-700' : 'text-gray-700'
+                    }`}>
                     {player.name}
                   </span>
                 </label>
@@ -506,52 +486,81 @@ function Answer({
         <button
           onClick={handleAnswerSubmit}
           disabled={!selectedPlayer || availablePlayers.length === 0 || isTimeUp}
-          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${
-            selectedPlayer && availablePlayers.length > 0 && !isTimeUp
+          className={`w-full font-bold py-4 px-6 rounded-lg shadow-lg transition-all duration-300 transform ${selectedPlayer && availablePlayers.length > 0 && !isTimeUp
               ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-xl hover:scale-105'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
+            }`}
         >
           <div>
-       {isTimeUp
-            ? '⏰ Waktu Habis - Tidak Ada Tebakan'
-            : availablePlayers.length === 0
-              ? '😔 Tidak ada pemain untuk ditebak'
-              : selectedPlayer
-                ? `🎯 Kirim Tebakan: ${availablePlayers.find(p => p.id === selectedPlayer)?.name}`
-                : '🤔 Pilih pemain terlebih dahulu'
-          }
+            {isTimeUp
+              ? '⏰ Waktu Habis - Tidak Ada Tebakan'
+              : availablePlayers.length === 0
+                ? '😔 Tidak ada pemain untuk ditebak'
+                : selectedPlayer
+                  ? `🎯 Kirim Tebakan: ${availablePlayers.find(p => p.id === selectedPlayer)?.name}`
+                  : '🤔 Pilih pemain terlebih dahulu'
+            }
           </div>
-   
+
         </button>
       </div>
     </div>
+
   );
+
 }
 
+
+
+
 // NEW: Enhanced Review Component with all stories and guesses
+
 function EnhancedReview({
+
+
   submittedStory,
+
   storyAuthor,
+
   playerGuess,
+
   players,
+
   guessResults,
+
   allSubmittedStories,
+
   onPlayAgain
+
 }: {
+
   submittedStory: string;
+
   storyAuthor: string;
+
   playerGuess: string;
+
   players: Player[];
+
   guessResults: any[];
+
   allSubmittedStories: Map<string, string>;
+
   onPlayAgain: () => void;
+
 }) {
+
   const router = useRouter();
+
   const [showConfetti, setShowConfetti] = useState(true);
+
   const [activeTab, setActiveTab] = useState<'guessing' | 'allstories'>('guessing');
 
+
+
+
   // Hitung apakah tebakan benar
+
   const isGuessCorrect = playerGuess === storyAuthor;
 
   const correctGuesses = guessResults.filter(r => r.correct).length;
@@ -591,65 +600,137 @@ function EnhancedReview({
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white py-6 px-6 flex-shrink-0 relative overflow-hidden">
         <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
         <div className="relative z-10">
+
           <h2 className="text-2xl font-bold flex items-center gap-3 mb-2">
+
             🎉 Review Hasil Tebakan
+
           </h2>
+
           <p className="text-emerald-100 text-sm">Lihat hasil tebakan dan semua cerita yang ditulis!</p>
+
         </div>
+
       </div>
+
+
+
 
       {/* Tab Navigation */}
+
       <div className="flex-shrink-0 bg-white/20 border-b border-white/30">
+
         <div className="flex">
+
           <button
+
             onClick={() => setActiveTab('guessing')}
-            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${
-              activeTab === 'guessing'
+
+            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${activeTab === 'guessing'
+
                 ? 'bg-white text-gray-800 border-b-2 border-emerald-500'
+
                 : 'text-white/80 hover:text-white hover:bg-white/10'
-            }`}
+
+              }`}
+
           >
+
             🎯 Hasil Tebakan
+
           </button>
+
           <button
+
             onClick={() => setActiveTab('allstories')}
-            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${
-              activeTab === 'allstories'
+
+            className={`flex-1 py-3 px-4 text-center font-medium transition-all ${activeTab === 'allstories'
+
                 ? 'bg-white text-gray-800 border-b-2 border-emerald-500'
+
                 : 'text-white/80 hover:text-white hover:bg-white/10'
-            }`}
+
+              }`}
+
           >
+
             📚 Semua Cerita
+
           </button>
+
         </div>
+
       </div>
 
+
+
+
       {/* Content */}
+
       <div className="flex-1 p-6 overflow-y-auto">
+
         {activeTab === 'guessing' ? (
+
           // Guessing Results Tab
+
           <>
-        {/* Story Author Reveal Section */}
-        <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg relative overflow-hidden">
-          {/* Background decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-4 -translate-x-4"></div>
 
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📖</span>
-              </div>
-              <div>
+            {/* Story Author Reveal Section */}
+
+            <div className="mb-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white shadow-lg relative overflow-hidden">
+
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-4 -translate-x-4"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+
+                    <span className="text-2xl">📖</span>
+
+                  </div>
+
+                  <div>
+
                     <h3 className="text-xl font-bold">Cerita yang Ditebak</h3>
-                    <p className="text-blue-100 text-sm">Penulis: {authorName}</p>
-              </div>
-            </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 w-full overflow-hidden">
+                    <p className="text-blue-100 text-sm">Penulis: {authorName}</p>
+
+                  </div>
+
+                </div>
+
+
+
+
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 w-full overflow-hidden">
+
                   <div className="w-full overflow-hidden bg-white/20 rounded-lg p-3 mb-3">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                     <p
+
                       className="text-white/90 italic leading-relaxed"
+
                       style={{
                         wordBreak: 'break-all',
                         overflowWrap: 'anywhere',
@@ -660,202 +741,382 @@ function EnhancedReview({
                     >
                       "{submittedStory}"
                     </p>
+
                   </div>
 
+
+
+
                   {/* Your Guess Result */}
+
                   <div className="p-3 rounded-lg bg-white/20">
+
                     <div className="flex items-center gap-2">
+
                       <span className={`text-2xl ${isGuessCorrect ? '✅' : '❌'}`}></span>
+
                       <span className="font-medium break-words">
                         Tebakan Anda: {playerGuess === '' ? 'Tidak menebak (waktu habis)' : guessedPlayerName}
                         {playerGuess === '' ? ' (+0 poin)' : isGuessCorrect ? ' (BENAR! +10 poin)' : ' (SALAH)'}
+
                       </span>
+
                     </div>
+
                   </div>
-                    </div>
-                    </div>
-                    </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-emerald-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-emerald-600">{correctGuesses}</div>
-                <div className="text-sm text-gray-600">Tebakan Benar</div>
+
+
+
+
+
+
+                </div>
+
+
+
+
               </div>
-              <div className="text-3xl">✅</div>
-            </div>
-          </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-red-600">{totalGuesses - correctGuesses}</div>
-                <div className="text-sm text-gray-600">Tebakan Salah</div>
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            {/* Summary Cards */}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+              <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-emerald-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold text-emerald-600">{correctGuesses}</div>
+                    <div className="text-sm text-gray-600">Tebakan Benar</div>
+                  </div>
+                  <div className="text-3xl">✅</div>
+                </div>
               </div>
-              <div className="text-3xl">❌</div>
-            </div>
-          </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-yellow-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-bold text-yellow-600">{guessResults.reduce((sum, r) => sum + r.points, 0)}</div>
+              <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-red-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-2xl font-bold text-red-600">{totalGuesses - correctGuesses}</div>
+                    <div className="text-sm text-gray-600">Tebakan Salah</div>
+                  </div>
+                  <div className="text-3xl">❌</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-4 shadow-md border-l-4 border-yellow-500">
+
+                <div className="flex items-center justify-between">
+
+                  <div>
+
+                    <div className="text-2xl font-bold text-yellow-600">{guessResults.reduce((sum, r) => sum + r.points, 0)}</div>
+
                     <div className="text-sm text-gray-600">Total Poin</div>
+
+                  </div>
+
+                  <div className="text-3xl">🏆</div>
+
+                </div>
+
               </div>
-              <div className="text-3xl">🏆</div>
+
             </div>
-          </div>
-        </div>
+
+
+
 
             {/* Results List */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            🎯 Detail Tebakan Pemain
-          </h3>
 
-          {guessResults.map((result, index) => (
-            <div
-              key={result.id}
-              className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg w-full ${result.correct
-                ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50'
-                : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
-                }`}
-            >
-              <div className="p-5">
-                <div className="flex items-center gap-4 mb-3">
-                  {/* Player Avatar */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
-                    }`}>
-                    <span className="text-white">👤</span>
-                  </div>
+            <div className="space-y-4">
 
-                  {/* Player Info */}
-                  <div className="flex-grow min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`font-bold text-lg ${result.correct ? 'text-emerald-700' : 'text-red-700'
-                        }`}>
-                        {result.player}
-                      </span>
-                      <span className="text-gray-500">menebak:</span>
-                      <span className="font-semibold text-gray-700 bg-white px-2 py-1 rounded-lg break-words">
-                        {result.guess}
-                      </span>
-                      {result.correct && (
-                        <span className="bg-emerald-500 text-white text-xs px-2 py-1 rounded-full">
-                          +{result.points} poin!
-                        </span>
-                      )}
-                    </div>
-                  </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
 
-                  {/* Points Display */}
-                  <div className="text-center flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
-                      }`}>
-                      <span className="text-white text-sm font-bold">
-                        {result.correct ? '✓' : '✗'}
-                      </span>
-                    </div>
-                    <div className={`text-2xl font-bold ${result.correct ? 'text-emerald-600' : 'text-red-600'
-                      }`}>
-                      +{result.points}
-                    </div>
-                    <div className="text-xs text-gray-500">poin</div>
-                  </div>
-                </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          // All Stories Tab
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-              📚 Semua Cerita yang Ditulis
-            </h3>
+                🎯 Detail Tebakan Pemain
+              </h3>
 
-            {Array.from(allSubmittedStories.entries()).map(([authorId, story], index) => {
-              const author = players.find(p => p.id === authorId);
-              const isCurrentUser = authorId === '1'; // current user ID
-              
-              return (
+              {guessResults.map((result, index) => (
                 <div
-                  key={authorId}
-                  className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg w-full ${
-                    isCurrentUser
-                      ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50'
-                      : 'border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50'
-                  }`}
-                  style={{ animationDelay: `${index * 0.1}s` }}
+                  key={result.id}
+                  className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg w-full ${result.correct
+
+                    ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50'
+
+                    : 'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
+
+                    }`}
+
+
                 >
+
                   <div className="p-5">
-                    <div className="flex items-start gap-4">
-                      {/* Author Avatar */}
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${
-                        isCurrentUser ? 'bg-blue-500' : 'bg-gray-500'
-                      }`}>
+
+                    <div className="flex items-center gap-4 mb-3">
+                      {/* Player Avatar */}
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
+                        }`}>
                         <span className="text-white">👤</span>
                       </div>
 
-                      {/* Story Content */}
+                      {/* Player Info */}
                       <div className="flex-grow min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`font-bold text-lg ${
-                            isCurrentUser ? 'text-blue-700' : 'text-gray-700'
-                          }`}>
-                            {author?.name}
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className={`font-bold text-lg ${result.correct ? 'text-emerald-700' : 'text-red-700'
+                            }`}>
+                            {result.player}
                           </span>
-                          {isCurrentUser && (
-                            <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-                              Your Story
+                          <span className="text-gray-500">menebak:</span>
+                          <span className="font-semibold text-gray-700 bg-white px-2 py-1 rounded-lg break-words">
+                            {result.guess}
+                          </span>
+                          {result.correct && (
+                            <span className="bg-emerald-500 text-white text-xs px-2 py-1 rounded-full">
+                              +{result.points} poin!
+
                             </span>
+
                           )}
-                          {authorId === storyAuthor && (
-                            <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
-                              Was Guessed
-                            </span>
-                          )}
+
                         </div>
-                        
-                        <div className="bg-white/70 p-4 rounded-lg border-l-4 border-gray-300 overflow-hidden">
-                          <p
-                            className="text-gray-800 leading-relaxed"
-                    style={{
-                              wordBreak: 'break-all',
-                              overflowWrap: 'anywhere',
-                              hyphens: 'auto',
-                              maxWidth: '100%',
-                              whiteSpace: 'pre-wrap'
-                            }}
-                          >
-                            "{story}"
-                          </p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+                      </div>
+
+
+
+
+                      {/* Points Display */}
+                      <div className="text-center flex-shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${result.correct ? 'bg-emerald-500' : 'bg-red-500'
+                          }`}>
+                          <span className="text-white text-sm font-bold">
+                            {result.correct ? '✓' : '✗'}
+                          </span>
+                        </div>
+                        <div className={`text-2xl font-bold ${result.correct ? 'text-emerald-600' : 'text-red-600'
+                          }`}>
+                          +{result.points}
+                        </div>
+
+                        <div className="text-xs text-gray-500">poin</div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
                 </div>
+
+              ))}
+
+            </div>
+
+          </>
+
+        ) : (
+
+          // All Stories Tab
+
+          <div className="space-y-4">
+
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+
+              📚 Semua Cerita yang Ditulis
+
+            </h3>
+
+
+
+
+            {Array.from(allSubmittedStories.entries()).map(([authorId, story], index) => {
+
+              const author = players.find(p => p.id === authorId);
+
+              const isCurrentUser = authorId === '1'; // current user ID
+
+
+
+
+              return (
+
+                <div
+
+                  key={authorId}
+
+                  className={`relative overflow-hidden rounded-xl border-2 shadow-md transition-all duration-300 hover:shadow-lg w-full ${isCurrentUser
+
+                      ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50'
+
+                      : 'border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50'
+
+                    }`}
+
+                  style={{ animationDelay: `${index * 0.1}s` }}
+
+                >
+
+                  <div className="p-5">
+
+                    <div className="flex items-start gap-4">
+
+                      {/* Author Avatar */}
+
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg flex-shrink-0 ${isCurrentUser ? 'bg-blue-500' : 'bg-gray-500'
+
+                        }`}>
+
+                        <span className="text-white">👤</span>
+
+                      </div>
+
+
+
+
+                      {/* Story Content */}
+
+                      <div className="flex-grow min-w-0">
+
+                        <div className="flex items-center gap-2 mb-2">
+
+                          <span className={`font-bold text-lg ${isCurrentUser ? 'text-blue-700' : 'text-gray-700'
+
+                            }`}>
+
+                            {author?.name}
+
+                          </span>
+
+                          {isCurrentUser && (
+
+                            <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+
+                              Your Story
+
+                            </span>
+
+                          )}
+
+                          {authorId === storyAuthor && (
+
+                            <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">
+
+                              Was Guessed
+
+                            </span>
+
+                          )}
+
+                        </div>
+
+
+
+
+                        <div className="bg-white/70 p-4 rounded-lg border-l-4 border-gray-300 overflow-hidden">
+
+                          <p
+
+                            className="text-gray-800 leading-relaxed"
+
+                            style={{
+
+                              wordBreak: 'break-all',
+
+                              overflowWrap: 'anywhere',
+
+                              hyphens: 'auto',
+
+                              maxWidth: '100%',
+
+                              whiteSpace: 'pre-wrap'
+
+                            }}
+
+                          >
+
+                            "{story}"
+
+                          </p>
+
+                        </div>
+
+
+
 
                         {/* Story Stats */}
+
                         <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
+
                           <div className="flex items-center gap-1">
+
                             <span>📝</span>
+
                             <span>{story.length} karakter</span>
-              </div>
+
+                          </div>
+
                           <div className="flex items-center gap-1">
+
                             <span>👤</span>
+
                             <span>Oleh {author?.name}</span>
-            </div>
-        </div>
+
+                          </div>
+
+
+                        </div>
+
                       </div>
+
                     </div>
+
                   </div>
+
                 </div>
+
               );
+
             })}
+
           </div>
+
         )}
 
+
+
+
         {/* Action Buttons */}
+
         <div className="mt-8 flex flex-col sm:flex-row gap-4">
           <button
             onClick={onPlayAgain}
@@ -884,8 +1145,7 @@ function Lobby({
   currentUserId,
   isHost,
   waitingForPlayers,
-  countdown,
-  minPlayersRequired = 3
+  countdown
 }: {
   players: Player[];
   onReady: () => void;
@@ -895,12 +1155,11 @@ function Lobby({
   isHost: boolean;
   waitingForPlayers: boolean;
   countdown: number | null;
-  minPlayersRequired?: number;
 }) {
   const currentUser = players.find(p => p.id === currentUserId);
   const readyPlayers = players.filter(p => p.isReady);
-  const allPlayersReady = players.length >= minPlayersRequired && readyPlayers.length === players.length;
-  const minPlayersReached = players.length >= minPlayersRequired;
+  const allPlayersReady = players.length >= 2 && readyPlayers.length === players.length;
+  const minPlayersReached = players.length >= 2;
 
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg h-full flex flex-col overflow-hidden">
@@ -1107,7 +1366,7 @@ function Lobby({
             <div className="space-y-2 text-sm">
               <div className={`flex items-center gap-2 ${minPlayersReached ? 'text-green-300' : 'text-red-300'}`}>
                 <span>{minPlayersReached ? '✅' : '❌'}</span>
-                <span>Minimal {minPlayersRequired} pemain ({players.length}/{minPlayersRequired})</span>
+                <span>Minimal 5 pemain ({players.length}/5)</span>
               </div>
               <div className={`flex items-center gap-2 ${allPlayersReady ? 'text-green-300' : 'text-yellow-300'}`}>
                 <span>{allPlayersReady ? '✅' : '⏳'}</span>
@@ -1124,7 +1383,7 @@ function Lobby({
             <h4 className="text-white font-bold mb-2">Menunggu Pemain Lain</h4>
             <p className="text-white/80 text-sm">
               {!minPlayersReached
-                ? `Perlu ${minPlayersRequired - players.length} pemain lagi untuk memulai`
+                ? `Perlu ${2 - players.length} pemain lagi untuk memulai`
                 : `Menunggu ${players.length - readyPlayers.length} pemain lagi untuk siap`
               }
             </p>
@@ -1201,139 +1460,108 @@ function Lobby({
 }
 
 // ============ MAIN PAGE COMPONENT ============
-export default function RoomPage() {
-  const router = useRouter();
-  const params = useParams();
-  const roomCode = params.code as string;
+const mockPlayers: Player[] = [
+  { id: "1", name: "Anton", points: 0, isHost: true, isReady: false },
+  { id: "2", name: "Cena", points: 0, isReady: true },
+  { id: "3", name: "Lunie", points: 0, isReady: true },
+  { id: "4", name: "Obito", points: 0, isReady: true },
+  { id: "5", name: "Teston", points: 0, isReady: true },
+];
 
-  // States
-  const [players, setPlayers] = useState<Player[]>([]);
+// Toast notification untuk perubahan status
+const statusMessages = {
+  'player_joined': '👋 Pemain baru bergabung!',
+  'player_left': '👋 Pemain keluar dari room',
+  'phase_changed': '📝 Fase baru dimulai!',
+  'time_warning': '⚠️ Waktu hampir habis!',
+  'all_submitted': '✅ Semua pemain sudah submit!'
+}
+
+
+
+
+export default function RoomPage() {
+
+  const [players, setPlayers] = useState(mockPlayers);
+
   const [currentStep, setCurrentStep] = useState<number>(0);
+
   const [roomStatus, setRoomStatus] = useState<'lobby' | 'in_progress' | 'finished'>('lobby');
+
   const [currentTime, setCurrentTime] = useState<string>('');
+
   const [gameFinished, setGameFinished] = useState(false);
+
   const [waitingForPlayers, setWaitingForPlayers] = useState(false);
+
   const [countdown, setCountdown] = useState<number | null>(null);
 
-  // Game states
-  const [submittedStory, setSubmittedStory] = useState<string>('');
-  const [selectedGenre, setSelectedGenre] = useState<string>('');
-  const [storyAuthor, setStoryAuthor] = useState<string>('');
-  const [playerGuess, setPlayerGuess] = useState<string>('');
-  const [guessResults, setGuessResults] = useState<any[]>([]);
-  
-  // Supabase states
-  const [roomId, setRoomId] = useState<string>('');
-  const [currentUserId, setCurrentUserId] = useState<string>('');
-  const [currentUserLocalId, setCurrentUserLocalId] = useState<string>('');
-  const [submittedStories, setSubmittedStories] = useState<Map<string, string>>(new Map());
-  const [hasCurrentUserSubmitted, setHasCurrentUserSubmitted] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
 
-  // Derived states
-  const isHost = players.find(p => p.local_id === currentUserLocalId)?.isHost || false;
+
+
+  // State untuk menyimpan cerita dan penulis
+
+  const [submittedStory, setSubmittedStory] = useState<string>('');
+
+  const [selectedGenre, setSelectedGenre] = useState<string>('');
+
+  const [storyAuthor, setStoryAuthor] = useState<string>('');
+
+  const [playerGuess, setPlayerGuess] = useState<string>('');
+
+  const [guessResults, setGuessResults] = useState<any[]>([]);
+
+
+
+
+  // NEW: Simplified states
+
+  const [submittedStories, setSubmittedStories] = useState<Map<string, string>>(new Map());
+
+  const [hasCurrentUserSubmitted, setHasCurrentUserSubmitted] = useState<boolean>(false);
+
+  const [randomStoryForGuessing, setRandomStoryForGuessing] = useState<{ story: string, authorId: string } | null>(null);
+
+
+
+
+  // Game settings
+
+  const currentUserId = '1';
+
+  const isHost = players.find(p => p.id === currentUserId)?.isHost || false;
+
+
+
+
+  // Check if all players are ready
+
   const readyPlayers = players.filter(p => p.isReady);
-  const allPlayersReady = players.length >= 3 && readyPlayers.length === players.length;
-  const minPlayersReached = players.length >= 3;
+
+  const allPlayersReady = players.length >= 2 && readyPlayers.length === players.length;
+
+  const minPlayersReached = players.length >= 2;
+
+
+
+
+  // NEW: Story submission logic
+
   const submittedCount = submittedStories.size;
+
   const allStoriesSubmitted = submittedCount === players.length;
 
-  // Initialize user and room
-  useEffect(() => {
-    const initializeRoom = async () => {
-      try {
-        setLoading(true);
-        
-        // Get or create local user ID
-        let localId = localStorage.getItem("playerId");
-        if (!localId) {
-          localId = crypto.randomUUID();
-          localStorage.setItem("playerId", localId);
-        }
-        setCurrentUserLocalId(localId);
 
-        // Get room data
-        const room = await getRoomByCode(roomCode);
-        setRoomId(room.id);
-        setRoomStatus(room.phase === 'lobby' ? 'lobby' : room.phase === 'gameplay' ? 'in_progress' : 'finished');
 
-        // Get player data
-        const playerName = localStorage.getItem("playerName") || "Anonymous";
-        const playerAvatar = localStorage.getItem("playerAvatar") || "😊";
 
-        // Join room
-        const player = await joinRoom(room.id, {
-          localId,
-          name: playerName,
-          avatar: playerAvatar,
-          isHost: false // Will be set by backend if first player
-        });
+  // Memoize updateTime function dengan useCallback
 
-        if (player) {
-          setCurrentUserId(player.id);
-        }
-
-        // Load initial data
-        await loadRoomData(room.id);
-
-      } catch (err: any) {
-        console.error("Error initializing room:", err);
-        setError(err.message || "Gagal memuat ruangan");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (roomCode) {
-      initializeRoom();
-    }
-  }, [roomCode]);
-
-  // Load room data
-  const loadRoomData = async (roomId: string) => {
-    try {
-      const playersData = await getPlayersInRoom(roomId);
-      setPlayers(playersData);
-
-      // Check if there's a current story
-      try {
-        const currentStory = await getCurrentStory(roomId);
-        if (currentStory) {
-          setSubmittedStory(currentStory.content);
-          setStoryAuthor(currentStory.authorId);
-          setCurrentStep(2); // Move to guessing phase
-        }
-      } catch (err) {
-        // No current story, stay in lobby/writing phase
-      }
-
-    } catch (err: any) {
-      console.error("Error loading room data:", err);
-      setError(err.message || "Gagal memuat data ruangan");
-    }
-  };
-
-  // Subscribe to real-time updates
-  useEffect(() => {
-    if (!roomId) return;
-
-    const subscription = subscribeToRoom(roomId, (payload: any) => {
-      console.log("Real-time update:", payload);
-      // Reload room data when changes occur
-      loadRoomData(roomId);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [roomId]);
-
-  // Time update
   const updateTime = useCallback(() => {
+
     setCurrentTime(getCurrentTime12Hour());
   }, []);
 
+  // Real-time clock effect
   useEffect(() => {
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -1341,13 +1569,22 @@ export default function RoomPage() {
   }, [updateTime]);
 
   // Auto start countdown when all players are ready
+
   useEffect(() => {
+
     if (allPlayersReady && minPlayersReached && currentStep === 0 && countdown === null) {
+
       setWaitingForPlayers(true);
+
       setCountdown(5);
+
     } else if (!allPlayersReady && countdown !== null) {
+
+
       setCountdown(null);
+
       setWaitingForPlayers(false);
+
     }
   }, [allPlayersReady, minPlayersReached, currentStep, countdown]);
 
@@ -1357,220 +1594,409 @@ export default function RoomPage() {
       const timer = setTimeout(() => {
         setCountdown(countdown - 1);
       }, 1000);
+
+
+
+
       return () => clearTimeout(timer);
+
     } else if (countdown === 0) {
-      handleStartGameFlow();
+
+
+      setCurrentStep(1);
+
+      setRoomStatus('in_progress');
+
+      setWaitingForPlayers(false);
+
+      setCountdown(null);
+
     }
+
   }, [countdown]);
 
-  // Auto proceed to guessing phase when all stories submitted
+
+
+
+  // NEW: Auto proceed to guessing phase when all stories submitted
+
   useEffect(() => {
+
     if (allStoriesSubmitted && currentStep === 1 && submittedCount > 0) {
-      setTimeout(async () => {
-        try {
-          // Update room phase to guessing
-          await updateRoomPhase(roomId, 'gameplay', 'guessing');
-          
-          // Get current story for guessing
-          const currentStory = await getCurrentStory(roomId);
-          if (currentStory) {
-            setSubmittedStory(currentStory.content);
-            setStoryAuthor(currentStory.authorId);
-            setCurrentStep(2);
-          }
-        } catch (err: any) {
-          console.error("Error transitioning to guessing phase:", err);
-          setError(err.message);
+
+      setTimeout(() => {
+
+        // Pick a random story for guessing (not from current user)
+
+        const otherPlayersStories = Array.from(submittedStories.entries())
+
+          .filter(([authorId]) => authorId !== currentUserId);
+
+
+
+
+        if (otherPlayersStories.length > 0) {
+
+          const randomIndex = Math.floor(Math.random() * otherPlayersStories.length);
+
+          const [authorId, story] = otherPlayersStories[randomIndex];
+
+
+
+
+          setRandomStoryForGuessing({ story, authorId });
+
+          setSubmittedStory(story);
+
+          setStoryAuthor(authorId);
+
         }
+
+
+
+
+        setCurrentStep(2); // Move to guessing phase
+
       }, 3000);
-    }
-  }, [allStoriesSubmitted, currentStep, submittedCount, roomId]);
 
-  // Handlers
-  const handleReady = async () => {
-    try {
-      const currentPlayer = players.find(p => p.local_id === currentUserLocalId);
-      if (currentPlayer) {
-        await updatePlayerReady(roomId, currentUserLocalId, !currentPlayer.isReady);
-        // Real-time subscription will update the UI
-      }
-    } catch (err: any) {
-      console.error("Error updating ready status:", err);
-      setError(err.message);
     }
+
+  }, [allStoriesSubmitted, currentStep, submittedCount, submittedStories, currentUserId]);
+
+
+
+
+  const handleReady = () => {
+
+    setPlayers(prevPlayers =>
+
+      prevPlayers.map(player =>
+        player.id === currentUserId
+          ? { ...player, isReady: !player.isReady }
+          : player
+      )
+    );
   };
 
-  const handleStartGame = async () => {
-    if (allPlayersReady && minPlayersReached && isHost) {
-      try {
-        setCountdown(null);
-        setWaitingForPlayers(true);
-        await handleStartGameFlow();
-      } catch (err: any) {
-        console.error("Error starting game:", err);
-        setError(err.message);
-      }
-    }
-  };
 
-  const handleStartGameFlow = async () => {
-    try {
-      await updateRoomPhase(roomId, 'gameplay', 'story_input');
-      setCurrentStep(1);
-      setRoomStatus('in_progress');
-      setWaitingForPlayers(false);
+
+
+  const handleStartGame = () => {
+
+    if (allPlayersReady && minPlayersReached) {
+
+
       setCountdown(null);
-    } catch (err: any) {
-      console.error("Error in start game flow:", err);
-      setError(err.message);
+
+      setWaitingForPlayers(true);
+
+
+
+      setTimeout(() => {
+        setCurrentStep(1);
+        setRoomStatus('in_progress');
+        setWaitingForPlayers(false);
+      }, 500);
     }
+
   };
+
+
+
 
   const handleCancelCountdown = () => {
+
+
     setCountdown(null);
+
     setWaitingForPlayers(false);
+
   };
 
   const handleStepChange = (step: number) => {
     if (gameFinished || step <= currentStep) {
       setCurrentStep(step);
+
     }
+
   };
 
-  const handleSubmitStory = async (story: string) => {
+
+
+
+  // NEW: Simplified handleSubmitStory
+
+  const handleSubmitStory = (story: string) => {
+
     if (hasCurrentUserSubmitted) {
+
       alert("Anda sudah submit cerita!");
+
       return;
+
     }
 
-    try {
-      console.log("Submitting story:", story);
-      
-      await submitStory(roomId, currentUserId, story);
-      setHasCurrentUserSubmitted(true);
-      
-      // Update local state
-      setSubmittedStories(prev => new Map(prev.set(currentUserId, story)));
-      
-      // Real-time subscription will update the UI
-      
-    } catch (err: any) {
-      console.error("Error submitting story:", err);
-      setError(err.message);
+
+
+
+    console.log("Submitted story:", story);
+
+
+
+
+    // Save the story for current user
+
+    setSubmittedStories(prev => new Map(prev.set(currentUserId, story)));
+
+    setHasCurrentUserSubmitted(true);
+
+
+
+
+    // Simulate other players submitting stories
+
+    simulateOtherPlayersSubmit();
+
+  };
+
+
+
+
+  // NEW: Simulate other players submitting stories
+
+  const simulateOtherPlayersSubmit = () => {
+
+    const otherPlayers = players.filter(p => p.id !== currentUserId && !submittedStories.has(p.id));
+
+
+
+
+    otherPlayers.forEach((player, index) => {
+
+      setTimeout(() => {
+
+        const randomStories = [
+
+          "Saya pernah tersesat di mall selama 3 jam karena terlalu malu untuk bertanya",
+
+          "Waktu kecil saya pernah makan pasta gigi karena dikira es krim",
+
+          "Saya pernah tidur di dalam lemari karena takut monster di bawah tempat tidur",
+
+          "Saya pernah menangis karena es krim jatuh, padahal umur sudah 20 tahun",
+
+          "Saya pernah berbicara dengan cermin selama 1 jam karena merasa kesepian"
+
+        ];
+
+
+
+
+        const randomStory = randomStories[Math.floor(Math.random() * randomStories.length)];
+
+
+
+
+        setSubmittedStories(prev => new Map(prev.set(player.id, randomStory)));
+
+      }, (index + 1) * 2000); // Each player submits 2 seconds apart
+
+    });
+
+  };
+
+
+
+
+  // Fungsi untuk generate tebakan random untuk AI players
+  const generateRandomGuess = (playerId: string, authorId: string, allPlayers: Player[]) => {
+    const availableTargets = allPlayers.filter(p => p.id !== playerId);
+    if (availableTargets.length === 0) return authorId;
+
+    // 30% chance untuk menebak benar
+    const shouldGuessCorrect = Math.random() < 0.3;
+    if (shouldGuessCorrect) {
+      return authorId;
+    } else {
+      // Pilih random dari available targets
+      const randomIndex = Math.floor(Math.random() * availableTargets.length);
+      return availableTargets[randomIndex].id;
     }
   };
 
-  const handleSubmitAnswer = async (guessedPlayerId: string) => {
-    try {
-      console.log("Submitted answer:", guessedPlayerId);
 
-      // Find current story
-      const currentStory = await getCurrentStory(roomId);
-      if (!currentStory) {
-        throw new Error("Tidak ada cerita untuk ditebak");
+
+
+  // Fungsi untuk menghitung hasil tebakan dan update poin
+
+  const calculateGuessResults = (userGuess: string, authorId: string) => {
+
+    const currentUserId = '1';
+
+    const isUserGuessCorrect = userGuess === authorId && userGuess !== '';
+
+
+
+
+    // Generate hasil tebakan untuk semua pemain
+
+    const results = players.map((player) => {
+      let guess: string;
+      let correct: boolean;
+
+      if (player.id === currentUserId) {
+
+        // Untuk current user, gunakan tebakan yang sebenarnya
+
+        guess = userGuess;
+
+        correct = isUserGuessCorrect;
+
+
+
+
+
+
+
+
+
+
+
+
+      } else {
+
+        // Untuk pemain lain, generate random guess
+
+        guess = generateRandomGuess(player.id, authorId, players);
+        correct = guess === authorId;
       }
 
-      // Submit guess
-      await submitGuess(currentStory.id, currentUserId, guessedPlayerId);
-      
-      // Get results
-      const results = await getGuessResults(currentStory.id);
-      setGuessResults(results);
-      setPlayerGuess(guessedPlayerId);
+      // Cari nama dari guess ID
 
-      // Update room phase to result
-      await updateRoomPhase(roomId, 'result');
-      
-      setCurrentStep(3);
-      setGameFinished(true);
+      const guessedPlayer = players.find(p => p.id === guess);
 
-    } catch (err: any) {
-      console.error("Error submitting answer:", err);
-      setError(err.message);
-    }
+      const guessName = guess === '' ? 'Tidak menebak (waktu habis)' : (guessedPlayer ? guessedPlayer.name : guess);
+
+
+
+
+      // Get player's submitted story
+
+      const playerStory = submittedStories.get(player.id) || '';
+
+
+
+
+      return {
+
+        id: player.id,
+
+        player: player.name,
+
+        guess: guessName,
+
+        guessId: guess,
+
+        correct: correct,
+
+        story: playerStory,
+
+        guessedStory: submittedStory,
+
+        points: correct ? 10 : 0
+
+      };
+
+    });
+
+    return results;
   };
 
-  const handlePlayAgain = async () => {
-    try {
-      // Reset room to lobby
-      await updateRoomPhase(roomId, 'lobby');
-      
-      // Reset all players ready status
-      for (const player of players) {
-        await updatePlayerReady(roomId, player.local_id, false);
-      }
-
-      // Reset local state
-      setCurrentStep(0);
-      setGameFinished(false);
-      setRoomStatus('lobby');
-      setWaitingForPlayers(false);
-      setCountdown(null);
-      setSubmittedStory('');
-      setSelectedGenre('');
-      setGuessResults([]);
-      setSubmittedStories(new Map());
-      setHasCurrentUserSubmitted(false);
-      setStoryAuthor('');
-      setPlayerGuess('');
-
-    } catch (err: any) {
-      console.error("Error resetting game:", err);
-      setError(err.message);
-    }
+  // Fungsi untuk update poin pemain
+  const updatePlayerPoints = (results: any[]) => {
+    setPlayers(prevPlayers => {
+      return prevPlayers.map(player => {
+        const result = results.find(r => r.id === player.id);
+        if (result && result.correct) {
+          return {
+            ...player,
+            points: player.points + result.points
+          };
+        }
+        return player;
+      });
+    });
   };
 
-  const handleLeaveRoom = async () => {
-    try {
-      await leaveRoom(roomId, currentUserLocalId);
-      router.push('/');
-    } catch (err: any) {
-      console.error("Error leaving room:", err);
-      // Still redirect even if error
-      router.push('/');
-    }
+  const handleSubmitAnswer = (guessedPlayerId: string) => {
+    console.log("Submitted answer:", guessedPlayerId);
+
+    // Simpan tebakan pemain
+    setPlayerGuess(guessedPlayerId);
+
+    // Hitung hasil tebakan untuk semua pemain
+    const results = calculateGuessResults(guessedPlayerId, storyAuthor);
+    setGuessResults(results);
+
+    // Update poin pemain yang berhasil menebak
+    updatePlayerPoints(results);
+
+    // Cek apakah tebakan benar
+    const isCorrect = guessedPlayerId === storyAuthor;
+    console.log('Tebakan benar?', isCorrect);
+    console.log('Penulis sebenarnya:', storyAuthor);
+    console.log('Yang ditebak:', guessedPlayerId);
+
+    setCurrentStep(3);
+    setGameFinished(true);
+
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 flex items-center justify-center">
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 shadow-lg">
-          <div className="text-center text-white">
-            <div className="text-4xl mb-4">⏳</div>
-            <h2 className="text-xl font-bold mb-2">Memuat Ruangan...</h2>
-            <p className="text-sm opacity-80">Mohon tunggu sebentar</p>
-          </div>
-        </div>
-      </div>
+
+
+
+  const handlePlayAgain = () => {
+
+    setCurrentStep(0);
+
+    setGameFinished(false);
+
+    setRoomStatus('lobby');
+
+    setWaitingForPlayers(false);
+
+    setCountdown(null);
+
+    setSubmittedStory('');
+
+    setSelectedGenre('');
+
+    setGuessResults([]);
+
+
+
+
+    // Reset states
+
+    setSubmittedStories(new Map());
+
+    setHasCurrentUserSubmitted(false);
+
+    setRandomStoryForGuessing(null);
+
+    setStoryAuthor('');
+
+    setPlayerGuess('');
+
+
+
+
+    // Reset ready status
+
+    setPlayers(prevPlayers =>
+      prevPlayers.map(player => ({ ...player, isReady: false }))
     );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 flex items-center justify-center">
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 shadow-lg max-w-md">
-          <div className="text-center text-white">
-            <div className="text-4xl mb-4">❌</div>
-            <h2 className="text-xl font-bold mb-2">Terjadi Kesalahan</h2>
-            <p className="text-sm opacity-80 mb-4">{error}</p>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-white text-purple-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-            >
-              Kembali ke Beranda
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Update PlayerList component to use handleLeaveRoom
-  const PlayerListWithLeave = ({ ...props }: any) => (
-    <PlayerList {...props} onLeaveRoom={handleLeaveRoom} />
-  );
+  };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -1584,55 +2010,363 @@ export default function RoomPage() {
             currentUserId={currentUserId}
             isHost={isHost}
             waitingForPlayers={waitingForPlayers}
+
             countdown={countdown}
-            minPlayersRequired={3}
+
           />
+
         );
-      case 1: // Write Story Phase
+
+      case 1: // Write Story Phase - Everyone writes simultaneously
+
         return (
+
           <div className="h-full flex flex-col space-y-4 overflow-y-auto custom-scrollbar">
+
             <div className="w-full flex-shrink-0">
+
+              {/* Story Input or Waiting Message */}
+
               {!hasCurrentUserSubmitted ? (
+
                 <StoryInput onSubmit={handleSubmitStory} />
+
               ) : (
+
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
+
                   <div className="text-center text-green-300">
+
                     <div className="text-4xl mb-4">✅</div>
+
                     <h3 className="text-xl font-bold text-white mb-2">Cerita Anda Sudah Dikirim!</h3>
-                    <p className="text-sm">Menunggu pemain lain menyelesaikan cerita mereka...</p>
+
+                    <p className="text-sm">
+
+                      Menunggu pemain lain menyelesaikan cerita mereka...
+
+                    </p>
+
                   </div>
+
                 </div>
+
               )}
+
             </div>
-            
+
+
+
+
             <div className="w-full flex-shrink-0">
-              {/* Story Submission Status - use existing component structure */}
-              {/* ... existing status component ... */}
+
+              {/* Story Submission Status */}
+
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 shadow-lg">
+
+
+
+
+
+                <div className="mb-6">
+
+                  <div className="flex items-center justify-between mb-4">
+
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+
+                      📝 Status Penulisan Cerita
+
+                    </h3>
+
+                    <div className="text-white/80 text-sm">
+
+                      {submittedCount}/{players.length} selesai
+
+                    </div>
+
+                  </div>
+
+
+
+
+                  {/* Progress Bar */}
+
+                  <div className="mb-4 bg-white/20 rounded-full h-3 overflow-hidden">
+
+                    <div
+
+                      className={`h-full transition-all duration-500 ease-out ${allStoriesSubmitted
+
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+
+
+                          : 'bg-gradient-to-r from-blue-400 to-purple-500'
+
+                        }`}
+
+                      style={{ width: `${(submittedCount / Math.max(players.length, 1)) * 100}%` }}
+
+                    />
+
+                  </div>
+
+
+
+
+                  {/* Player Status List */}
+
+                  <div className="space-y-2">
+
+                    {players.map((player) => {
+
+                      const hasSubmitted = submittedStories.has(player.id);
+
+                      const isCurrentPlayer = player.id === currentUserId;
+
+
+
+
+                      return (
+
+                        <div
+
+                          key={player.id}
+
+                          className={`flex items-center gap-3 p-3 rounded-lg transition-all ${hasSubmitted
+
+                              ? 'bg-green-500/20 border border-green-400/30'
+
+
+                              : 'bg-white/10 border border-white/20'
+
+                            }`}
+
+                        >
+                          {/* Avatar */}
+                          <div className="relative flex-shrink-0">
+
+                            <div className="w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center">
+
+                              😊
+
+                            </div>
+
+                            {hasSubmitted && (
+
+                              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center bg-green-500">
+
+
+                                <span className="text-white text-xs">✓</span>
+
+                              </div>
+
+                            )}
+                          </div>
+
+                          {/* Player Info */}
+                          <div className="flex-grow">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-white">
+                                {player.name}
+                              </span>
+                              {player.isHost && (
+                                <span className="bg-yellow-500 text-yellow-900 text-xs px-2 py-1 rounded-full font-medium">
+
+                                  Host
+
+                                </span>
+
+                              )}
+
+                              {isCurrentPlayer && (
+
+                                <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+
+                                  You
+
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-white/70">
+                              {player.points} poin
+
+                            </div>
+
+                          </div>
+
+
+
+
+                          {/* Submit Status */}
+
+                          <div className="flex-shrink-0">
+
+                            {hasSubmitted ? (
+
+
+
+
+
+
+
+
+
+
+
+                              <div className="flex items-center gap-1 text-green-300">
+
+                                <span className="text-sm">✅</span>
+
+                                <span className="text-sm font-medium">Selesai</span>
+
+                              </div>
+
+                            ) : (
+
+                              <div className="flex items-center gap-1 text-yellow-300">
+
+                                <span className="text-sm">✍️</span>
+
+                                <span className="text-sm font-medium">
+
+                                  {isCurrentPlayer ? 'Menunggu Anda' : 'Sedang Menulis...'}
+
+                                </span>
+
+                              </div>
+
+                            )}
+
+                          </div>
+
+                        </div>
+
+                      );
+
+                    })}
+
+                  </div>
+
+
+
+
+                  {/* All Stories Submitted Message */}
+
+                  {allStoriesSubmitted && (
+
+                    <div className="mt-4 text-center p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+
+                      <div className="text-2xl mb-2">🎉</div>
+
+                      <h4 className="text-white font-bold mb-1">Semua Cerita Sudah Ditulis!</h4>
+
+                      <p className="text-green-200 text-sm">
+
+                        Lanjut ke fase menebak dalam 3 detik...
+
+                      </p>
+
+                    </div>
+
+                  )}
+
+
+
+
+                  {/* Waiting Message */}
+
+                  {!allStoriesSubmitted && submittedCount > 0 && (
+
+                    <div className="mt-4 text-center p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
+
+                      <div className="text-2xl mb-2">⏳</div>
+
+                      <h4 className="text-white font-bold mb-1">Menunggu Pemain Lain</h4>
+
+                      <p className="text-blue-200 text-sm">
+
+                        {players.length - submittedCount} pemain belum menulis cerita
+
+                      </p>
+
+                    </div>
+
+                  )}
+
+
+
+
+                  {/* Instructions for new players */}
+
+                  {submittedCount === 0 && (
+
+                    <div className="mt-4 text-center p-4 bg-purple-500/20 rounded-lg border border-purple-400/30">
+
+                      <div className="text-2xl mb-2">📝</div>
+
+                      <h4 className="text-white font-bold mb-1">Mulai Menulis!</h4>
+
+                      <p className="text-purple-200 text-sm">
+
+                        Semua pemain menulis cerita bersamaan. Tulis cerita menarik tentang diri Anda!
+
+                      </p>
+
+                    </div>
+
+                  )}
+
+                </div>
+
+              </div>
+
             </div>
+
           </div>
+
         );
+
       case 2: // Guess Author Phase
+
         return (
+
           <div className="h-full custom-scrollbar">
+
             <Answer
               currentStory={submittedStory}
               players={players}
               onSubmitAnswer={handleSubmitAnswer}
+
             />
+
           </div>
+
         );
-      case 3: // Review Results
+
+      case 3: // Review Results - Enhanced with all stories and guesses
+
         return (
+
           <div className="h-full custom-scrollbar">
+
             <EnhancedReview
+
               submittedStory={submittedStory}
+
               storyAuthor={storyAuthor}
+
               playerGuess={playerGuess}
+
               players={players}
+
               guessResults={guessResults}
+
               allSubmittedStories={submittedStories}
+
               onPlayAgain={handlePlayAgain}
+
             />
+
           </div>
         );
       default:
@@ -1648,15 +2382,18 @@ export default function RoomPage() {
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-3xl lg:text-4xl">📖</span>
-              <h1 className="text-xl lg:text-2xl font-bold text-white">Tebak Cerita</h1>
+              <h1 className="text-xl lg:text-2xl font-bold text-white">
+                Tebak Cerita
+              </h1>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-white/80 text-sm">Room: #{roomCode}</div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                roomStatus === 'lobby' ? 'bg-blue-500/20 text-blue-300' :
+              <div className="text-white/80 text-sm">
+                Room: #ABC123
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${roomStatus === 'lobby' ? 'bg-blue-500/20 text-blue-300' :
                 roomStatus === 'in_progress' ? 'bg-yellow-500/20 text-yellow-300' :
-                'bg-green-500/20 text-green-300'
-              }`}>
+                  'bg-green-500/20 text-green-300'
+                }`}>
                 {roomStatus === 'lobby' && '🏠 Lobby'}
                 {roomStatus === 'in_progress' && '🎮 Bermain'}
                 {roomStatus === 'finished' && '🏁 Selesai'}
@@ -1672,13 +2409,14 @@ export default function RoomPage() {
         {/* Main Content */}
         <div className="flex-1 min-h-0 p-4 lg:p-6">
           <div className="max-w-7xl mx-auto h-full flex flex-col lg:flex-row gap-4 lg:gap-6">
+
             {/* Left Sidebar - Player List */}
             <div className="w-full lg:w-80 lg:flex-shrink-0 order-2 lg:order-1">
               <div className="h-64 lg:h-full">
-                <PlayerListWithLeave
+                <PlayerList
                   players={players}
                   onReady={handleReady}
-                  currentUserId={currentUserLocalId}
+                  currentUserId={currentUserId}
                   gameStarted={currentStep > 0}
                 />
               </div>
@@ -1687,6 +2425,7 @@ export default function RoomPage() {
             {/* Main Game Area */}
             <div className="flex-1 order-1 lg:order-2 min-h-0">
               <div className="h-full flex flex-col">
+
                 {/* Stepper - Only show during game */}
                 {currentStep > 0 && (
                   <Stepper
