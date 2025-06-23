@@ -2,10 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import * as roomService from "../services/roomService";
-
-// Comment out Supabase import temporarily
-// import { supabase } from "../utils/supabaseClient";
 
 const AVATARS = ["😃", "🦊", "🐼", "🐸", "🦄", "🐧", "🐯", "🐵", "🐱", "🐶"];
 
@@ -29,10 +25,11 @@ export default function Home() {
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomCode, setNewRoomCode] = useState("");
+  const [maxPlayers, setMaxPlayers] = useState(3);
+  const [maxScore, setMaxScore] = useState(15);
   const [shareMsg, setShareMsg] = useState("");
   const [joinLoading, setJoinLoading] = useState(false);
   const [showJoinError, setShowJoinError] = useState(false);
-  const [joinErrorMsg, setJoinErrorMsg] = useState("");
   const [createRoomLoading, setCreateRoomLoading] = useState(false);
   const router = useRouter();
 
@@ -43,10 +40,6 @@ export default function Home() {
       const savedAvatar = localStorage.getItem("playerAvatar");
       if (savedName) setPlayerName(savedName);
       if (savedAvatar && AVATARS.includes(savedAvatar)) setAvatar(savedAvatar);
-
-      if (!localStorage.getItem("playerId")) {
-        localStorage.setItem("playerId", crypto.randomUUID());
-      }
     }
   }, []);
 
@@ -71,6 +64,8 @@ export default function Home() {
   const handleCreateRoom = () => {
     // Open modal and generate code
     setNewRoomName(playerName ? `Ruangan ${playerName}` : "Ruangan Baru");
+    setMaxPlayers(3);
+    setMaxScore(15);
     setNewRoomCode(generateRoomCode());
     setShowCreateRoomModal(true);
     setShareMsg("");
@@ -79,45 +74,20 @@ export default function Home() {
   const handleCreateRoomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateRoomLoading(true);
-    
-    try {
-      // Get user data
-      const localId = localStorage.getItem("playerId") || crypto.randomUUID();
-      const playerName = localStorage.getItem("playerName") || "Anonymous";
-      const avatar = localStorage.getItem("playerAvatar") || "😊";
-
-      // Store localId if not exists
-      if (!localStorage.getItem("playerId")) {
-        localStorage.setItem("playerId", localId);
-      }
-
-      // Create room with creator data
-      const result = await roomService.createRoom(newRoomName, {
-        localId,
-        playerName,
-        avatar
-      });
-
-      if (result) {
-        setShowCreateRoomModal(false);
-        setCreateRoomLoading(false);
-        router.push(`/room/${result.code}`);
-      }
-    } catch (error: any) {
-      setCreateRoomLoading(false);
-      setShowCreateRoomModal(false);
-      setJoinErrorMsg(error.message || "Gagal membuat ruangan. Silakan coba lagi.");
-      setShowJoinError(true);
-    }
+    await new Promise((r) => setTimeout(r, 900)); // simulate loading
+    setShowCreateRoomModal(false);
+    setCreateRoomLoading(false);
+    router.push(`/room/${newRoomCode}`);
   };
 
   const handleShareCode = async () => {
+    const url = `${window.location.origin}/room/${newRoomCode}`;
     try {
-      await navigator.clipboard.writeText(newRoomCode);
-      setShareMsg("Kode ruangan disalin!");
+      await navigator.clipboard.writeText(url);
+      setShareMsg("Link ruangan disalin!");
       setTimeout(() => setShareMsg(""), 1500);
     } catch {
-      setShareMsg("Gagal menyalin kode");
+      setShareMsg("Gagal menyalin link");
       setTimeout(() => setShareMsg(""), 1500);
     }
   };
@@ -125,20 +95,15 @@ export default function Home() {
   const handleJoinRoom = async () => {
     if (!roomCode.trim()) return;
     setJoinLoading(true);
-    
-    try {
-      // Simple validation and redirect
-      if (roomCode.trim().length >= 4) {
-        setJoinLoading(false);
-        router.push(`/room/${roomCode.trim()}`);
-      } else {
-        throw new Error("Kode ruangan harus minimal 4 karakter");
-      }
-    } catch (error: any) {
+    // Simulate validation: code must be 6 chars, uppercase letters/numbers only
+    const valid = /^[A-Z0-9]{6}$/.test(roomCode.trim());
+    await new Promise((r) => setTimeout(r, 800)); // simulate loading
+    if (!valid) {
       setJoinLoading(false);
-      setJoinErrorMsg(error.message || "Kode ruangan tidak valid.");
       setShowJoinError(true);
+      return;
     }
+    router.push(`/room/${roomCode.trim()}`);
   };
 
   return (
@@ -344,7 +309,32 @@ export default function Home() {
                     maxLength={30}
                     required
                   />
-        
+                  <label className="text-blue-700 font-semibold text-sm">
+                    Jumlah Maksimal Pemain
+                  </label>
+                  <select
+                    value={maxPlayers}
+                    onChange={(e) => setMaxPlayers(Number(e.target.value))}
+                    className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
+                  >
+                    <option value={3}>3 Orang</option>
+                    <option value={4}>4 Orang</option>
+                    <option value={5}>5 Orang</option>
+                  </select>
+                  <label className="text-blue-700 font-semibold text-sm">
+                    Score Maksimal Leaderboard
+                  </label>
+                  <select
+                    value={maxScore}
+                    onChange={(e) => setMaxScore(Number(e.target.value))}
+                    className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 text-base"
+                  >
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                    <option value={25}>25</option>
+                    <option value={30}>30</option>
+                  </select>
                   <label className="text-blue-700 font-semibold text-sm">
                     Kode Ruangan
                   </label>
@@ -486,8 +476,7 @@ export default function Home() {
                   Kode Ruangan Tidak Valid
                 </h3>
                 <p className="text-red-700 text-center mb-2">
-                  {joinErrorMsg ||
-                    "Kode ruangan harus 6 karakter, huruf kapital/angka."}
+                  Kode ruangan harus 6 karakter, huruf kapital/angka.
                 </p>
                 <button
                   onClick={() => setShowJoinError(false)}
